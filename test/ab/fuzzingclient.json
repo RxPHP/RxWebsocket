@@ -1,0 +1,13 @@
+{
+   "options": {"failByDrop": false},
+   "outdir": "./reports/servers",
+
+   "servers": [
+                {"agent": "RxWebsocketServer/0.0.0",
+                 "url": "ws://localhost:9001",
+                 "options": {"version": 18}}
+              ],
+   "cases": ["1.1.*", "2.*", "3.*", "4.*", "5.*", "7.*"],
+   "exclude-cases": ["12.*","13.*"],
+   "exclude-agent-cases": {}
+}
