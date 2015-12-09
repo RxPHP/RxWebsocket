@@ -19,7 +19,7 @@ $runIndividualTest = function ($case) {
 
     $casePath = "/runCase?case={$case}&agent=" . AGENT;
 
-    $client = new \Voryx\RxWebsocket\Client("ws://127.0.0.1:9001" . $casePath);
+    $client = new \Voryx\RxWebsocket\Client("ws://127.0.0.1:9001" . $casePath, true);
 
     $deferred = new \React\Promise\Deferred();
 

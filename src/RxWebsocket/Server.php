@@ -22,15 +22,19 @@ class Server extends BaseObservable
     /** @var Subject */
     protected $connectionSubject;
 
+    /** @var bool */
+    private $useMessageObject;
+
     /**
      * Server constructor.
      * @param $bindAddress
      * @param $port
      */
-    public function __construct($bindAddress, $port)
+    public function __construct($bindAddress, $port, $useMessageObject = false)
     {
-        $this->bindAddress = $bindAddress;
-        $this->port        = $port;
+        $this->bindAddress      = $bindAddress;
+        $this->port             = $port;
+        $this->useMessageObject = $useMessageObject;
 
         $this->connectionSubject = new Subject();
     }
@@ -94,7 +98,9 @@ class Server extends BaseObservable
                     function () use ($response) {
                         $response->end();
                     }
-                )
+                ),
+                false,
+                $this->useMessageObject
             );
 
             $this->connectionSubject->onNext($connection);

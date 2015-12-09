@@ -29,8 +29,9 @@ class MessageSubject extends Subject
      * @param ObservableInterface $rawDataIn
      * @param ObserverInterface $rawDataOut
      * @param bool $mask
+     * @param bool $useMessageObject
      */
-    public function __construct(ObservableInterface $rawDataIn, ObserverInterface $rawDataOut, $mask = false)
+    public function __construct(ObservableInterface $rawDataIn, ObserverInterface $rawDataOut, $mask = false, $useMessageObject = false)
     {
         $this->rawDataIn = new AnonymousObservable(function ($observer) use ($rawDataIn) {
             return $rawDataIn->subscribe($observer);
@@ -88,7 +89,7 @@ class MessageSubject extends Subject
             ->filter(function (Frame $frame) {
                 return $frame->getOpcode() < 3;
             })
-            ->lift(new WebsocketMessageOperator($mask))
+            ->lift(new WebsocketMessageOperator($mask, $useMessageObject))
             ->subscribe(new CallbackObserver(
                 function ($x) {
                     parent::onNext($x);
@@ -134,6 +135,10 @@ class MessageSubject extends Subject
     // subscribers
     public function onNext($value)
     {
+        if ($value instanceof Message) {
+            $this->sendFrame(new Frame($value, true, $value->isBinary() ? Frame::OP_BINARY : Frame::OP_TEXT));
+            return;
+        }
         $this->sendFrame(new Frame($value));
     }
 

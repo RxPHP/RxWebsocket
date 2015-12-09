@@ -17,13 +17,18 @@ class Client extends Subject
 {
     protected $url;
 
+    /** @var bool */
+    private $useMessageObject;
+
     /**
      * RxWebsocket constructor.
      * @param $url
+     * @param bool $useMessageObject
      */
-    public function __construct($url)
+    public function __construct($url, $useMessageObject = false)
     {
         $this->url = $url;
+        $this->useMessageObject = $useMessageObject;
     }
 
     private function startConnection()
@@ -94,7 +99,8 @@ class Client extends Subject
                         $request->end();
                     }
                 ),
-                true
+                true,
+                $this->useMessageObject
             ));
         });
 
