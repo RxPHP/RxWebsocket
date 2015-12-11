@@ -22,6 +22,12 @@
             "name": "David Dan", "email": "davidwdan@gmail.com", "role": "Developer"
         }
     ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/mbonneau/RFC6455.git"
+        }
+    ],
     "require": {
         "react/http": "dev-master",
         "react/http-client": "dev-master",
