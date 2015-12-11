@@ -9,7 +9,8 @@ echo "Using " . get_class(\EventLoop\getLoop()) . "\n";
 $runReports = function () {
     echo "Generating report.\n";
 
-    $client = new \Voryx\RxWebsocket\Client("ws://127.0.0.1:9001/updateReports?agent=" . AGENT);
+    $reportUrl = "ws://127.0.0.1:9001/updateReports?agent=" . AGENT . "&shutdownOnComplete=true";
+    $client = new \Voryx\RxWebsocket\Client($reportUrl);
 
     $client->subscribe(new \Rx\Observer\CallbackObserver());
 };
