@@ -9,17 +9,9 @@ matrix:
     allow_failures:
         - php: hhvm
 
-addons:
-  apt:
-    packages:
-    - build-essential
-    - libssl-dev
-    - libffi-dev
-    - python-dev
-    - python-pip
-
 before_install:
-     - pip install autobahntestsuite
+    - export PATH=$HOME/.local/bin:$PATH
+    - pip install autobahntestsuite --user `whoami`
 
 before_script:
     - composer install
