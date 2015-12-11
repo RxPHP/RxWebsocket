@@ -1,5 +1,4 @@
 language: php
-sudo: required
 
 php:
     - 5.6
@@ -10,10 +9,17 @@ matrix:
     allow_failures:
         - php: hhvm
 
+addons:
+  apt:
+    packages:
+    - build-essential
+    - libssl-dev
+    - libffi-dev
+    - python-dev
+    - python-pip
+
 before_install:
-     - sudo apt-get install python-pip -qq
-     - sudo apt-get install -qq build-essential libssl-dev libffi-dev python-dev python-pip
-     - sudo pip install autobahntestsuite
+     - pip install autobahntestsuite
 
 before_script:
     - composer install
