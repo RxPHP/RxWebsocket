@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/voryx/RxWebsocket.svg?branch=master)](https://travis-ci.org/voryx/RxWebsocket)
+
 RxWebsocket is a PHP Websocket library.
 
 ## Usage
