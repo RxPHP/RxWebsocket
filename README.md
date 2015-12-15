@@ -74,8 +74,22 @@ $server
 
 Using [composer](https://getcomposer.org/):
 
-Right now, this project uses components of the [Ratchet RFC6455 project](https://github.com/ratchetphp/RFC6455) that
-are not tagged with a release, so they must be installed manually before this project:
+Right now, this project uses a [fork](https://github.com/mbonneau/RFC6455/tree/psr7) of the
+[Ratchet RFC6455 project](https://github.com/ratchetphp/RFC6455).
+If you are going to use this in another project, you need to add the fork repository to your composer.json file:
+```json
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/mbonneau/RFC6455.git"
+        }
+    ]
+```
+
+And then install rx.php dev-master:
+```composer require asm89/rx.php:dev-master```
+
+And then install the dev-psr branch (which will use the repo added above):
 ```composer require ratchet/rfc6455:dev-psr```
 
 Then install this project:

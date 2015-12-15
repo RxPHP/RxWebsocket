@@ -29,8 +29,8 @@
         }
     ],
     "require": {
-        "react/http": "dev-master",
-        "react/http-client": "dev-master",
+        "react/http": "^0.4.1",
+        "react/http-client": "^0.4.8",
         "ratchet/rfc6455": "dev-psr7",
         "asm89/rx.php": "dev-master",
         "voryx/event-loop": "^0.2.0"
