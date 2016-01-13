@@ -75,13 +75,18 @@ $server
 Using [composer](https://getcomposer.org/):
 
 Right now, this project uses a [fork](https://github.com/mbonneau/RFC6455/tree/psr7) of the
-[Ratchet RFC6455 project](https://github.com/ratchetphp/RFC6455).
-If you are going to use this in another project, you need to add the fork repository to your composer.json file:
+[Ratchet RFC6455 project](https://github.com/ratchetphp/RFC6455) and also a [fork](https://github.com/voryx/Rx.PHP) of the
+[Rx.PHP project](https://github.com/asm89/Rx.PHP).
+If you are going to use this in another project, you need to add the fork repositories to your composer.json file:
 ```json
     "repositories": [
         {
             "type": "vcs",
             "url": "https://github.com/mbonneau/RFC6455.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/voryx/rx.php.git"
         }
     ]
 ```

@@ -26,6 +26,10 @@
         {
             "type": "vcs",
             "url": "https://github.com/mbonneau/RFC6455.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/voryx/rx.php.git"
         }
     ],
     "require": {

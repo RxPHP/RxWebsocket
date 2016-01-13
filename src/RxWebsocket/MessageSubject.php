@@ -3,8 +3,8 @@
 namespace Voryx\RxWebsocket;
 
 use Ratchet\RFC6455\Messaging\Protocol\Frame;
+use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
-use Rx\Observable\BaseObservable;
 use Rx\ObservableInterface;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
@@ -12,7 +12,7 @@ use Rx\Subject\Subject;
 
 class MessageSubject extends Subject
 {
-    /** @var BaseObservable */
+    /** @var Observable */
     protected $rawDataIn;
 
     /** @var ObserverInterface */
@@ -21,7 +21,7 @@ class MessageSubject extends Subject
     /** @var bool */
     protected $mask;
 
-    /** @var BaseObservable */
+    /** @var Observable */
     protected $controlFrames;
 
     /**
@@ -48,7 +48,9 @@ class MessageSubject extends Subject
         $frames = new Subject();
 
         $this->rawDataIn
-            ->lift(new WebsocketFrameOperator())
+            ->lift(function () {
+                return new WebsocketFrameOperator();
+            })
             ->subscribe(new CallbackObserver(
                 [$frames, "onNext"],
                 function ($error) use ($frames) {
@@ -89,7 +91,9 @@ class MessageSubject extends Subject
             ->filter(function (Frame $frame) {
                 return $frame->getOpcode() < 3;
             })
-            ->lift(new WebsocketMessageOperator($mask, $useMessageObject))
+            ->lift(function () use ($mask, $useMessageObject) {
+                return new WebsocketMessageOperator($mask, $useMessageObject);
+            })
             ->subscribe(new CallbackObserver(
                 function ($x) {
                     parent::onNext($x);
@@ -124,7 +128,7 @@ class MessageSubject extends Subject
     }
 
     /**
-     * @return BaseObservable
+     * @return Observable
      */
     public function getControlFrames()
     {

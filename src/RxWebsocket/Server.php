@@ -7,13 +7,13 @@ use Ratchet\RFC6455\Handshake\Negotiator;
 use React\Http\Request;
 use React\Http\Response;
 use Rx\Disposable\CallbackDisposable;
+use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
-use Rx\Observable\BaseObservable;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
 use Rx\Subject\Subject;
 
-class Server extends BaseObservable
+class Server extends Observable
 {
     protected $bindAddress;
 
