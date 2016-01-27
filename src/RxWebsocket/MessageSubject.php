@@ -24,20 +24,30 @@ class MessageSubject extends Subject
     /** @var Observable */
     protected $controlFrames;
 
+    /** @var string */
+    private $subProtocol;
+
     /**
      * ConnectionSubject constructor.
      * @param ObservableInterface $rawDataIn
      * @param ObserverInterface $rawDataOut
      * @param bool $mask
      * @param bool $useMessageObject
+     * @param string $subProtocol
      */
-    public function __construct(ObservableInterface $rawDataIn, ObserverInterface $rawDataOut, $mask = false, $useMessageObject = false)
-    {
+    public function __construct(
+        ObservableInterface $rawDataIn,
+        ObserverInterface $rawDataOut,
+        $mask = false,
+        $useMessageObject = false,
+        $subProtocol = ""
+    ) {
         $this->rawDataIn = new AnonymousObservable(function ($observer) use ($rawDataIn) {
             return $rawDataIn->subscribe($observer);
         });
         $this->rawDataOut = $rawDataOut;
         $this->mask = $mask;
+        $this->subProtocol = $subProtocol;
 
         // This can be used instead of the subjecg when this issue is addressed:
         // https://github.com/asm89/Rx.PHP/issues/20
@@ -105,6 +115,7 @@ class MessageSubject extends Subject
                     parent::onCompleted();
                 }
             ));
+        $this->subProtocol = $subProtocol;
     }
 
     private function createCloseFrame($closeCode = Frame::CLOSE_NORMAL)
@@ -157,5 +168,13 @@ class MessageSubject extends Subject
 
         // notify subscribers
         parent::onCompleted();
+    }
+
+    /**
+     * @return string
+     */
+    public function getSubProtocol()
+    {
+        return $this->subProtocol;
     }
 }

@@ -15,20 +15,26 @@ use Rx\Subject\Subject;
 
 class Client extends Subject
 {
+    /** @var string */
     protected $url;
 
     /** @var bool */
     private $useMessageObject;
 
+    /** @var array */
+    private $subProtocols;
+
     /**
      * RxWebsocket constructor.
      * @param $url
      * @param bool $useMessageObject
+     * @param array $subProtocols
      */
-    public function __construct($url, $useMessageObject = false)
+    public function __construct($url, $useMessageObject = false, array $subProtocols = [])
     {
         $this->url = $url;
         $this->useMessageObject = $useMessageObject;
+        $this->subProtocols = $subProtocols;
     }
 
     private function startConnection()
@@ -41,7 +47,7 @@ class Client extends Subject
         $factory = new \React\HttpClient\Factory();
         $client = $factory->create($loop, $dnsResolver);
 
-        $cNegotiator = new ClientNegotiator($this->url);
+        $cNegotiator = new ClientNegotiator($this->url, $this->subProtocols);
 
         $headers = $cNegotiator->getRequest()->getHeaders();
 

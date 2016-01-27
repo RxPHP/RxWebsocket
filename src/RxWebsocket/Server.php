@@ -25,18 +25,24 @@ class Server extends Observable
     /** @var bool */
     private $useMessageObject;
 
+    /** @var array */
+    private $subProtocols;
+
     /**
      * Server constructor.
      * @param $bindAddress
      * @param $port
+     * @param bool $useMessageObject
+     * @param array $subProtocols
      */
-    public function __construct($bindAddress, $port, $useMessageObject = false)
+    public function __construct($bindAddress, $port, $useMessageObject = false, array $subProtocols = [])
     {
         $this->bindAddress      = $bindAddress;
         $this->port             = $port;
         $this->useMessageObject = $useMessageObject;
 
         $this->connectionSubject = new Subject();
+        $this->subProtocols = $subProtocols;
     }
 
     private function startServer()
@@ -44,6 +50,9 @@ class Server extends Observable
         $socket = new \React\Socket\Server(\EventLoop\getLoop());
 
         $negotiator = new Negotiator(new Validator());
+        if (!empty($this->subProtocols)) {
+            $negotiator->setSupportedSubProtocols($this->subProtocols);
+        }
 
         $http = new \React\Http\Server($socket);
         $http->on('request', function (Request $request, Response $response) use ($negotiator) {
