@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/RxPHP/Websocket.svg?branch=master)](https://travis-ci.org/RxPHP/Websocket)
+[![Build Status](https://travis-ci.org/RxPHP/RxWebsocket.svg?branch=master)](https://travis-ci.org/RxPHP/RxWebsocket)
 
 Rx\Websocket is a PHP Websocket library.
 
