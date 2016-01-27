@@ -1,6 +1,6 @@
 <?php
 
-namespace Voryx\RxWebsocket\Test;
+namespace Rx\Websocket\Test;
 
 use EventLoop\EventLoop;
 use React\EventLoop\Timer\TimerInterface;

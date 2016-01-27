@@ -1,10 +1,10 @@
 <?php
 
-namespace Voryx\RxWebsocket;
+namespace Rx\Websocket;
 
-use Ratchet\RFC6455\Encoding\Validator;
-use Ratchet\RFC6455\Messaging\Protocol\Message;
-use Ratchet\RFC6455\Messaging\Validation\MessageValidator;
+use Rx\Websocket\RFC6455\Encoding\Validator;
+use Rx\Websocket\RFC6455\Messaging\Protocol\Message;
+use Rx\Websocket\RFC6455\Messaging\Validation\MessageValidator;
 use Rx\ObservableInterface;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
@@ -52,7 +52,7 @@ class WebsocketMessageOperator implements OperatorInterface
                 if ($this->message->isCoalesced()) {
                     if ($this->useMessageObject) {
                         $observer->onNext(
-                            new \Voryx\RxWebsocket\Message($this->message->getPayload(), $this->message->isBinary())
+                            new \Rx\Websocket\Message($this->message->getPayload(), $this->message->isBinary())
                         );
                     } else {
                         $observer->onNext($this->message->getPayload());

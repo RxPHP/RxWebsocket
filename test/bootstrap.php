@@ -13,7 +13,7 @@ $files = [
 foreach ($files as $file) {
     if (file_exists($file)) {
         $loader = require $file;
-        $loader->addPsr4('Voryx\\RxWebsocket\\Test\\', __DIR__);
+        $loader->addPsr4('Rx\\Websocket\\Test\\', __DIR__);
         break;
     }
 }

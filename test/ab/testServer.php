@@ -9,10 +9,10 @@ if ($argc > 1 && is_numeric($argv[1])) {
     });
 }
 
-$server = new \Voryx\RxWebsocket\Server("127.0.0.1", 9001, true);
+$server = new \Rx\Websocket\Server("127.0.0.1", 9001, true);
 
 $server->subscribe(new \Rx\Observer\CallbackObserver(
-    function (\Voryx\RxWebsocket\MessageSubject $ms) {
+    function (\Rx\Websocket\MessageSubject $ms) {
         $ms->subscribe($ms);
     }
 ));

@@ -1,5 +1,5 @@
 {
-    "name": "voryx/rxwebsocket",
+    "name": "rx/websocket",
     "type": "library",
     "description": "Async Websockets for PHP using Rx",
     "keywords": [
@@ -22,26 +22,16 @@
             "name": "David Dan", "email": "davidwdan@gmail.com", "role": "Developer"
         }
     ],
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/mbonneau/RFC6455.git"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/voryx/rx.php.git"
-        }
-    ],
     "require": {
         "react/http": "^0.4.1",
         "react/http-client": "^0.4.8",
-        "ratchet/rfc6455": "dev-psr7",
-        "asm89/rx.php": "dev-master",
-        "voryx/event-loop": "^0.2.0"
+        "voryx/event-loop": "^0.2.0",
+        "reactivex/rxphp": "^1.0",
+        "guzzlehttp/psr7": "^1.2"
     },
     "autoload": {
         "psr-4": {
-            "Voryx\\RxWebsocket\\": "src/RxWebsocket/"
+            "Rx\\Websocket\\": "src/Websocket/"
         }
     }
 }

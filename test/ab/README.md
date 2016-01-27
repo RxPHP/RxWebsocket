@@ -1,6 +1,6 @@
-This directory is used to run the [Autobahn Testsuite](http://autobahn.ws/testsuite/) against the RxWebsocket library.
+This directory is used to run the [Autobahn Testsuite](http://autobahn.ws/testsuite/) against the Rx\Websocket library.
 
-### Client tests (RxWebsocket is the client being tested)
+### Client tests (Rx\Websocket is the client being tested)
 
 Start the fuzzing server:
 ```
@@ -12,7 +12,7 @@ In another shell, run the test client:
 php clientRunner.php
 ```
 
-### Server tests (RxWebsocket is the server being tested)
+### Server tests (Rx\Websocket is the server being tested)
 
 Start the server:
 ```

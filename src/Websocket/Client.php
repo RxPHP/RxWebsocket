@@ -1,9 +1,9 @@
 <?php
 
-namespace Voryx\RxWebsocket;
+namespace Rx\Websocket;
 
 use Exception;
-use Ratchet\RFC6455\Handshake\ClientNegotiator;
+use Rx\Websocket\RFC6455\Handshake\ClientNegotiator;
 use React\Dns\Resolver\Factory;
 use React\HttpClient\Request;
 use React\HttpClient\Response;
@@ -25,7 +25,7 @@ class Client extends Subject
     private $subProtocols;
 
     /**
-     * RxWebsocket constructor.
+     * Websocket constructor.
      * @param $url
      * @param bool $useMessageObject
      * @param array $subProtocols

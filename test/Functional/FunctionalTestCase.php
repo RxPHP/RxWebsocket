@@ -1,10 +1,10 @@
 <?php
 
-namespace Voryx\RxWebsocket\Test\Functional;
+namespace Rx\Websocket\Test\Functional;
 
-use Voryx\RxWebsocket\Client;
-use Voryx\RxWebsocket\Server;
-use Voryx\RxWebsocket\Test\TestCase;
+use Rx\Websocket\Client;
+use Rx\Websocket\Server;
+use Rx\Websocket\Test\TestCase;
 
 class FunctionalTestCase extends TestCase
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Voryx\RxWebsocket;
+namespace Rx\Websocket;
 
 class Message
 {

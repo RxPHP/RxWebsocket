@@ -1,9 +1,9 @@
 <?php
 
-namespace Voryx\RxWebsocket;
+namespace Rx\Websocket;
 
-use Ratchet\RFC6455\Encoding\Validator;
-use Ratchet\RFC6455\Handshake\Negotiator;
+use Rx\Websocket\RFC6455\Encoding\Validator;
+use Rx\Websocket\RFC6455\Handshake\Negotiator;
 use React\Http\Request;
 use React\Http\Response;
 use Rx\Disposable\CallbackDisposable;

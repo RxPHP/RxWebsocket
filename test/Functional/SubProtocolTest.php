@@ -1,6 +1,6 @@
 <?php
 
-namespace Voryx\RxWebsocket\Test\Functional;
+namespace Rx\Websocket\Test\Functional;
 
 class SubProtocolTest extends FunctionalTestCase
 {

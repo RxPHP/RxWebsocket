@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/voryx/RxWebsocket.svg?branch=master)](https://travis-ci.org/voryx/RxWebsocket)
+[![Build Status](https://travis-ci.org/RxPHP/Websocket.svg?branch=master)](https://travis-ci.org/RxPHP/Websocket)
 
-RxWebsocket is a PHP Websocket library.
+Rx\Websocket is a PHP Websocket library.
 
 ## Usage
 
@@ -10,10 +10,10 @@ RxWebsocket is a PHP Websocket library.
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-$client = new \RxWebsocket\Client("ws://127.0.0.1:9191/");
+$client = new \Rx\Websocket\Client("ws://127.0.0.1:9191/");
 
 $client->subscribe(new \Rx\Observer\CallbackObserver(
-    function (\RxWebsocket\MessageSubject $ms) {
+    function (\Rx\Websocket\MessageSubject $ms) {
         $ms->subscribe(new \Rx\Observer\CallbackObserver(
             function ($message) {
                 echo $message . "\n";
@@ -40,11 +40,11 @@ $client->subscribe(new \Rx\Observer\CallbackObserver(
 
 require_once __DIR__ . "/vendor/autoload.php";
 
-$server = new \RxWebsocket\Server("127.0.0.1", 9191);
+$server = new \Rx\Websocket\Server("127.0.0.1", 9191);
 
 $server
     ->subscribe(new \Rx\Observer\CallbackObserver(
-        function (\RxWebsocket\MessageSubject $cs) {
+        function (\Rx\Websocket\MessageSubject $cs) {
             $cs->subscribe($cs);
         }
     ));
@@ -56,11 +56,11 @@ $server
 
 require_once __DIR__ . "/vendor/autoload.php";
 
-$server = new \RxWebsocket\Server("127.0.0.1", 9191);
+$server = new \Rx\Websocket\Server("127.0.0.1", 9191);
 
 $server
     ->subscribe(new \Rx\Observer\CallbackObserver(
-        function (\RxWebsocket\MessageSubject $cs) {
+        function (\Rx\Websocket\MessageSubject $cs) {
             $ms->subscribe(new CallbackObserver(
                 function ($message) {
                     echo $message;
@@ -74,28 +74,4 @@ $server
 
 Using [composer](https://getcomposer.org/):
 
-Right now, this project uses a [fork](https://github.com/mbonneau/RFC6455/tree/psr7) of the
-[Ratchet RFC6455 project](https://github.com/ratchetphp/RFC6455) and also a [fork](https://github.com/voryx/Rx.PHP) of the
-[Rx.PHP project](https://github.com/asm89/Rx.PHP).
-If you are going to use this in another project, you need to add the fork repositories to your composer.json file:
-```json
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/mbonneau/RFC6455.git"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/voryx/rx.php.git"
-        }
-    ]
-```
-
-And then install rx.php dev-master:
-```composer require asm89/rx.php:dev-master```
-
-And then install the dev-psr branch (which will use the repo added above):
-```composer require ratchet/rfc6455:dev-psr```
-
-Then install this project:
-```composer require voryx/rxwebsocket```
+```composer require rx/websocket```

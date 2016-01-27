@@ -1,10 +1,10 @@
 <?php
 
-namespace Voryx\RxWebsocket;
+namespace Rx\Websocket;
 
-use Ratchet\RFC6455\Encoding\Validator;
-use Ratchet\RFC6455\Messaging\Protocol\Frame;
-use Ratchet\RFC6455\Messaging\Validation\MessageValidator;
+use Rx\Websocket\RFC6455\Encoding\Validator;
+use Rx\Websocket\RFC6455\Messaging\Protocol\Frame;
+use Rx\Websocket\RFC6455\Messaging\Validation\MessageValidator;
 use Rx\ObservableInterface;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;

@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../bootstrap.php';
 
-const AGENT = "RxWebsocket/0.0.0";
+const AGENT = "Websocket/0.0.0";
 
 echo "Using " . get_class(\EventLoop\getLoop()) . "\n";
 
@@ -10,7 +10,7 @@ $runReports = function () {
     echo "Generating report.\n";
 
     $reportUrl = "ws://127.0.0.1:9001/updateReports?agent=" . AGENT . "&shutdownOnComplete=true";
-    $client = new \Voryx\RxWebsocket\Client($reportUrl);
+    $client = new \Rx\Websocket\Client($reportUrl);
 
     $client->subscribe(new \Rx\Observer\CallbackObserver());
 };
@@ -20,12 +20,12 @@ $runIndividualTest = function ($case) {
 
     $casePath = "/runCase?case={$case}&agent=" . AGENT;
 
-    $client = new \Voryx\RxWebsocket\Client("ws://127.0.0.1:9001" . $casePath, true);
+    $client = new \Rx\Websocket\Client("ws://127.0.0.1:9001" . $casePath, true);
 
     $deferred = new \React\Promise\Deferred();
 
     $client->subscribe(new \Rx\Observer\CallbackObserver(
-        function (\Voryx\RxWebsocket\MessageSubject $messages) {
+        function (\Rx\Websocket\MessageSubject $messages) {
             $messages->subscribe(new \Rx\Observer\CallbackObserver(
                 function ($x) use ($messages) {
                     //echo $x . "\n";
@@ -70,7 +70,7 @@ $runTests = function ($testCount) use ($runIndividualTest, $runReports) {
 };
 
 // get the tests that need to run
-$client = new \Voryx\RxWebsocket\Client("ws://127.0.0.1:9001/getCaseCount");
+$client = new \Rx\Websocket\Client("ws://127.0.0.1:9001/getCaseCount");
 
 $client
     ->flatMap(function ($x) {

@@ -1,8 +1,8 @@
 <?php
 
-namespace Voryx\RxWebsocket;
+namespace Rx\Websocket;
 
-use Ratchet\RFC6455\Messaging\Protocol\Frame;
+use Rx\Websocket\RFC6455\Messaging\Protocol\Frame;
 
 class WebsocketErrorException extends \Exception
 {
