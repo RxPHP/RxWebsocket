@@ -59,7 +59,9 @@ class WebsocketMessageOperator implements OperatorInterface
                     }
                     $this->message = new Message();
                 }
-            }
+            },
+            [$observer, 'onError'],
+            [$observer, 'onCompleted']
         ));
     }
 }

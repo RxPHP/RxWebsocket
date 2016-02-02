@@ -76,7 +76,9 @@ class WebsocketFrameOperator implements OperatorInterface
                         $this->frame = new Frame();
                     }
                 }
-            }
+            },
+            [$observer, 'onError'],
+            [$observer, 'onCompleted']
         ));
     }
 }

@@ -65,6 +65,19 @@ class Client extends Subject
             // TODO: Should validate response
             //$cNegotiator->validateResponse($response);
 
+            $subprotoHeader = "";
+
+            $psr7Response = new \GuzzleHttp\Psr7\Response(
+                $response->getCode(),
+                $response->getHeaders(),
+                null,
+                $response->getVersion()
+            );
+
+            if (count($psr7Response->getHeader('Sec-WebSocket-Protocol')) == 1) {
+                $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol')[0];
+            }
+
             parent::onNext(new MessageSubject(
                 new AnonymousObservable(function (ObserverInterface $observer) use ($response) {
                     $response->on('data', function ($data) use ($observer) {
@@ -106,7 +119,10 @@ class Client extends Subject
                     }
                 ),
                 true,
-                $this->useMessageObject
+                $this->useMessageObject,
+                $subprotoHeader,
+                $cNegotiator->getRequest(),
+                $psr7Response
             ));
         });
 

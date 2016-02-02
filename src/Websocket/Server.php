@@ -2,6 +2,8 @@
 
 namespace Rx\Websocket;
 
+use Guzzle\Http\Message\RequestInterface;
+use GuzzleHttp\Psr7\Uri;
 use Rx\Websocket\RFC6455\Encoding\Validator;
 use Rx\Websocket\RFC6455\Handshake\Negotiator;
 use React\Http\Request;
@@ -56,11 +58,20 @@ class Server extends Observable
 
         $http = new \React\Http\Server($socket);
         $http->on('request', function (Request $request, Response $response) use ($negotiator) {
+            $uri = new Uri($request->getPath());
+            if (count($request->getQuery()) > 0) {
+                $uri = $uri->withQuery(\GuzzleHttp\Psr7\build_query($request->getQuery()));
+            }
+
             $psrRequest = new \GuzzleHttp\Psr7\Request(
                 $request->getMethod(),
-                $request->getPath(),
+                $uri,
                 $request->getHeaders()
             );
+
+            // cram the remote address into the header in out own X- header so
+            // the user will have access to it
+            $psrRequest = $psrRequest->withAddedHeader("X-RxWebsocket-Remote-Address", $request->remoteAddress);
 
             $negotiatorResponse = $negotiator->handshake($psrRequest);
 
@@ -77,6 +88,11 @@ class Server extends Observable
                 return;
             }
 
+            $subProtocol = "";
+            if (count($negotiatorResponse->getHeader('Sec-WebSocket-Protocol')) > 0) {
+                $subProtocol = $negotiatorResponse->getHeader('Sec-WebSocket-Protocol')[0];
+            }
+
             $connection = new MessageSubject(
                 new AnonymousObservable(
                     function (ObserverInterface $observer) use ($request) {
@@ -87,6 +103,9 @@ class Server extends Observable
                             $observer->onError($error);
                         });
                         $request->on('close', function () use ($observer) {
+                            $observer->onCompleted();
+                        });
+                        $request->on('end', function () use ($observer) {
                             $observer->onCompleted();
                         });
 
@@ -109,7 +128,10 @@ class Server extends Observable
                     }
                 ),
                 false,
-                $this->useMessageObject
+                $this->useMessageObject,
+                $subProtocol,
+                $psrRequest,
+                $negotiatorResponse
             );
 
             $this->connectionSubject->onNext($connection);

@@ -2,6 +2,8 @@
 
 namespace Rx\Websocket;
 
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Rx\Websocket\RFC6455\Messaging\Protocol\Frame;
 use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
@@ -27,6 +29,12 @@ class MessageSubject extends Subject
     /** @var string */
     private $subProtocol;
 
+    /** @var RequestInterface */
+    private $request;
+
+    /** @var ResponseInterface */
+    private $response;
+
     /**
      * ConnectionSubject constructor.
      * @param ObservableInterface $rawDataIn
@@ -34,14 +42,21 @@ class MessageSubject extends Subject
      * @param bool $mask
      * @param bool $useMessageObject
      * @param string $subProtocol
+     * @param RequestInterface $request
+     * @param ResponseInterface $response
      */
     public function __construct(
         ObservableInterface $rawDataIn,
         ObserverInterface $rawDataOut,
         $mask = false,
         $useMessageObject = false,
-        $subProtocol = ""
+        $subProtocol = "",
+        RequestInterface $request,
+        ResponseInterface $response
     ) {
+        $this->request = $request;
+        $this->response = $response;
+
         $this->rawDataIn = new AnonymousObservable(function ($observer) use ($rawDataIn) {
             return $rawDataIn->subscribe($observer);
         });
@@ -92,10 +107,12 @@ class MessageSubject extends Subject
             ->filter(function (Frame $frame) {
                 return $frame->getOpcode() === $frame::OP_PING;
             })
-            ->subscribe(new CallbackObserver(function (Frame $frame) {
-                $pong = new Frame($frame->getPayload(), true, Frame::OP_PONG);
-                $this->sendFrame($pong);
-            }));
+            ->subscribe(new CallbackObserver(
+                function (Frame $frame) {
+                    $pong = new Frame($frame->getPayload(), true, Frame::OP_PONG);
+                    $this->sendFrame($pong);
+                }
+            ));
 
         $frames
             ->filter(function (Frame $frame) {
@@ -176,5 +193,21 @@ class MessageSubject extends Subject
     public function getSubProtocol()
     {
         return $this->subProtocol;
+    }
+
+    /**
+     * @return RequestInterface
+     */
+    public function getRequest()
+    {
+        return $this->request;
+    }
+
+    /**
+     * @return ResponseInterface
+     */
+    public function getResponse()
+    {
+        return $this->response;
     }
 }
