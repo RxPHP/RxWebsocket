@@ -21,9 +21,6 @@ class Server extends Observable
 
     protected $port;
 
-    /** @var Subject */
-    protected $connectionSubject;
-
     /** @var bool */
     private $useMessageObject;
 
@@ -42,12 +39,10 @@ class Server extends Observable
         $this->bindAddress      = $bindAddress;
         $this->port             = $port;
         $this->useMessageObject = $useMessageObject;
-
-        $this->connectionSubject = new Subject();
-        $this->subProtocols = $subProtocols;
+        $this->subProtocols     = $subProtocols;
     }
 
-    private function startServer()
+    public function subscribe(ObserverInterface $observer, $scheduler = null)
     {
         $socket = new \React\Socket\Server(\EventLoop\getLoop());
 
@@ -57,7 +52,7 @@ class Server extends Observable
         }
 
         $http = new \React\Http\Server($socket);
-        $http->on('request', function (Request $request, Response $response) use ($negotiator) {
+        $http->on('request', function (Request $request, Response $response) use ($negotiator, $observer, &$outStream) {
             $uri = new Uri($request->getPath());
             if (count($request->getQuery()) > 0) {
                 $uri = $uri->withQuery(\GuzzleHttp\Psr7\build_query($request->getQuery()));
@@ -134,7 +129,7 @@ class Server extends Observable
                 $negotiatorResponse
             );
 
-            $this->connectionSubject->onNext($connection);
+            $observer->onNext($connection);
         });
 
         $socket->listen($this->port, $this->bindAddress);
@@ -143,17 +138,12 @@ class Server extends Observable
 //        $http->on('data', function () {});
 //        $http->on('pause', function () {});
 //        $http->on('resume', function () {});
-    }
 
-    public function subscribe(ObserverInterface $observer, $scheduler = null)
-    {
-        if (!$this->started) {
-            $this->started = true;
+        $this->started = true;
 
-            $this->startServer();
-        }
-
-        return $this->connectionSubject->subscribe($observer, $scheduler);
+        return new CallbackDisposable(function () use ($socket) {
+            $socket->shutdown();
+        });
     }
 
     protected function doStart($scheduler)
