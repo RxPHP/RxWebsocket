@@ -54,14 +54,14 @@ $server
 ```php
 <?php
 
-require_once __DIR__ . "/vendor/autoload.php";
+require_once __DIR__ . '/vendor/autoload.php';
 
-$server = new \Rx\Websocket\Server("127.0.0.1", 9191);
+$server = new \Rx\Websocket\Server('127.0.0.1', 9191);
 
 $server
     ->subscribe(new \Rx\Observer\CallbackObserver(
         function (\Rx\Websocket\MessageSubject $cs) {
-            $ms->subscribe(new CallbackObserver(
+            $cs->subscribe(new \Rx\Observer\CallbackObserver(
                 function ($message) {
                     echo $message;
                 }
