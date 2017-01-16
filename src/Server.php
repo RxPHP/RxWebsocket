@@ -2,10 +2,9 @@
 
 namespace Rx\Websocket;
 
-use Guzzle\Http\Message\RequestInterface;
 use GuzzleHttp\Psr7\Uri;
-use Rx\Websocket\RFC6455\Encoding\Validator;
-use Rx\Websocket\RFC6455\Handshake\Negotiator;
+use Ratchet\RFC6455\Handshake\RequestVerifier;
+use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use React\Http\Request;
 use React\Http\Response;
 use Rx\Disposable\CallbackDisposable;
@@ -13,7 +12,6 @@ use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
-use Rx\Subject\Subject;
 
 class Server extends Observable
 {
@@ -46,7 +44,7 @@ class Server extends Observable
     {
         $socket = new \React\Socket\Server(\EventLoop\getLoop());
 
-        $negotiator = new Negotiator(new Validator());
+        $negotiator = new ServerNegotiator(new RequestVerifier());
         if (!empty($this->subProtocols)) {
             $negotiator->setSupportedSubProtocols($this->subProtocols);
         }
@@ -64,7 +62,7 @@ class Server extends Observable
                 $request->getHeaders()
             );
 
-            // cram the remote address into the header in out own X- header so
+            // cram the remote address into the header in our own X- header so
             // the user will have access to it
             $psrRequest = $psrRequest->withAddedHeader("X-RxWebsocket-Remote-Address", $request->remoteAddress);
 
@@ -144,10 +142,5 @@ class Server extends Observable
         return new CallbackDisposable(function () use ($socket) {
             $socket->shutdown();
         });
-    }
-
-    protected function doStart($scheduler)
-    {
-
     }
 }

@@ -4,10 +4,13 @@ namespace Rx\Websocket;
 
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use Rx\Websocket\RFC6455\Messaging\Protocol\Frame;
+use Ratchet\RFC6455\Messaging\CloseFrameChecker;
+use Ratchet\RFC6455\Messaging\Frame;
+use Ratchet\RFC6455\Messaging\FrameInterface;
+use Ratchet\RFC6455\Messaging\Message;
+use Ratchet\RFC6455\Messaging\MessageBuffer;
+use Rx\DisposableInterface;
 use Rx\Observable;
-use Rx\Observable\AnonymousObservable;
-use Rx\ObservableInterface;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
 use Rx\Subject\Subject;
@@ -35,9 +38,12 @@ class MessageSubject extends Subject
     /** @var ResponseInterface */
     private $response;
 
+    /** @var DisposableInterface */
+    private $rawDataDisp;
+
     /**
      * ConnectionSubject constructor.
-     * @param ObservableInterface $rawDataIn
+     * @param Observable $rawDataIn
      * @param ObserverInterface $rawDataOut
      * @param bool $mask
      * @param bool $useMessageObject
@@ -46,7 +52,7 @@ class MessageSubject extends Subject
      * @param ResponseInterface $response
      */
     public function __construct(
-        ObservableInterface $rawDataIn,
+        Observable $rawDataIn,
         ObserverInterface $rawDataOut,
         $mask = false,
         $useMessageObject = false,
@@ -54,90 +60,61 @@ class MessageSubject extends Subject
         RequestInterface $request,
         ResponseInterface $response
     ) {
-        $this->request = $request;
+        $this->request  = $request;
         $this->response = $response;
 
-        $this->rawDataIn = new AnonymousObservable(function ($observer) use ($rawDataIn) {
-            return $rawDataIn->subscribe($observer);
-        });
-        $this->rawDataOut = $rawDataOut;
-        $this->mask = $mask;
+        $this->rawDataIn   = $rawDataIn;
+        $this->rawDataOut  = $rawDataOut;
+        $this->mask        = $mask;
         $this->subProtocol = $subProtocol;
 
-        // This can be used instead of the subjecg when this issue is addressed:
-        // https://github.com/asm89/Rx.PHP/issues/20
-        // Actually - using the subject is better so that the framing doesn't get done for every
-        // subscriber.
-        //$frames = $this->rawDataIn
-        //    ->lift(new WebsocketFrameOperator());
-        $frames = new Subject();
+        $messageBuffer = new MessageBuffer(
+            new CloseFrameChecker(),
+            function (\Ratchet\RFC6455\Messaging\MessageInterface $msg) use ($useMessageObject) {
+                parent::onNext($useMessageObject ? $msg : $msg->getPayload());
+            },
+            function (FrameInterface $frame) use ($rawDataOut) {
+                switch ($frame->getOpcode()) {
+                    case Frame::OP_PING:
+                        $this->sendFrame(new Frame($frame->getPayload(), true, Frame::OP_PONG));
+                        return;
+                    case Frame::OP_CLOSE:
+                        // send close frame to remote
+                        $this->sendFrame($frame);
+                        // complete output stream
+                        $rawDataOut->onCompleted();
 
-        $this->rawDataIn
-            ->lift(function () {
-                return new WebsocketFrameOperator();
-            })
-            ->subscribe(new CallbackObserver(
-                [$frames, "onNext"],
-                function ($error) use ($frames) {
-                    $close = $this->createCloseFrame();
-                    if ($error instanceof WebsocketErrorException) {
-                        $close = $this->createCloseFrame($error->getCloseCode());
-                    }
-                    $this->sendFrame($close);
-                    $this->rawDataOut->onCompleted();
-
-                    // TODO: Should this error through to frame observers?
-                    $frames->onCompleted();
-                },
-                function () use ($frames) {
-                    $this->rawDataOut->onCompleted();
-
-                    $frames->onCompleted();
+                        // signal subscribers that we are done here
+                        //parent::onCompleted();
+                        return;
                 }
-            ));
+            },
+            !$this->mask
+        );
 
-        $this->controlFrames = $frames
-            ->filter(function (Frame $frame) {
-                return $frame->getOpcode() > 2;
-            });
-
-        // default ping handler (ping received from far end
-        $this
-            ->controlFrames
-            ->filter(function (Frame $frame) {
-                return $frame->getOpcode() === $frame::OP_PING;
-            })
+        $this->rawDataDisp = $this->rawDataIn
             ->subscribe(new CallbackObserver(
-                function (Frame $frame) {
-                    $pong = new Frame($frame->getPayload(), true, Frame::OP_PONG);
-                    $this->sendFrame($pong);
-                }
-            ));
-
-        $frames
-            ->filter(function (Frame $frame) {
-                return $frame->getOpcode() < 3;
-            })
-            ->lift(function () use ($mask, $useMessageObject) {
-                return new WebsocketMessageOperator($mask, $useMessageObject);
-            })
-            ->subscribe(new CallbackObserver(
-                function ($x) {
-                    parent::onNext($x);
+                function ($data) use ($messageBuffer) {
+                    $messageBuffer->onData($data);
                 },
-                function ($x) {
-                    parent::onError($x);
+                function (\Exception $exception) {
+                    parent::onError($exception);
                 },
                 function () {
                     parent::onCompleted();
                 }
             ));
+
         $this->subProtocol = $subProtocol;
     }
 
     private function createCloseFrame($closeCode = Frame::CLOSE_NORMAL)
     {
-        return new Frame(pack('n', $closeCode), true, Frame::OP_CLOSE);
+        $frame = new Frame(pack('n', $closeCode), true, Frame::OP_CLOSE);
+        if ($this->mask) {
+            $frame->maskPayload();
+        }
+        return $frame;
     }
 
     public function send($value)
@@ -176,14 +153,15 @@ class MessageSubject extends Subject
 
     public function onError(\Exception $exception)
     {
+        $this->rawDataDisp->dispose();
 
+        parent::onError($exception);
     }
 
     public function onCompleted()
     {
         $this->sendFrame($this->createCloseFrame());
 
-        // notify subscribers
         parent::onCompleted();
     }
 

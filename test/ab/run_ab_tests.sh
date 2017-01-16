@@ -6,7 +6,7 @@ php clientRunner.php
 
 sleep 2
 
-php testServer.php 15 &
+php testServer.php 60 &
 sleep 3
 wstest -m fuzzingclient -s fuzzingclient.json
 sleep 12

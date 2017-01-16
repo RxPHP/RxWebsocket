@@ -13,9 +13,6 @@
     <testsuites>
         <testsuite name="RxWebsocket Test">
             <directory>test/</directory>
-            <exclude>
-                <directory>test/ab</directory>
-            </exclude>
         </testsuite>
     </testsuites>
 

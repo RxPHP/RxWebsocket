@@ -11,8 +11,8 @@ matrix:
 
 before_install:
     - export PATH=$HOME/.local/bin:$PATH
-    - pip install autobahntestsuite --user `whoami`
-    - pip list autobahntestsuite --user `whoami`
+    - pip install --user autobahntestsuite
+    - pip list --user autobahntestsuite
 
 before_script:
     - composer install
