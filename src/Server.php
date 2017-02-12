@@ -64,7 +64,7 @@ class Server extends Observable
 
             // cram the remote address into the header in our own X- header so
             // the user will have access to it
-            $psrRequest = $psrRequest->withAddedHeader("X-RxWebsocket-Remote-Address", $request->remoteAddress);
+            $psrRequest = $psrRequest->withAddedHeader('X-RxWebsocket-Remote-Address', $request->remoteAddress);
 
             $negotiatorResponse = $negotiator->handshake($psrRequest);
 
@@ -72,7 +72,7 @@ class Server extends Observable
                 $negotiatorResponse->getStatusCode(),
                 array_merge(
                     $negotiatorResponse->getHeaders(),
-                    ["Content-Length" => "0"]
+                    ['Content-Length' => '0']
                 )
             );
 

@@ -9,6 +9,7 @@ use Ratchet\RFC6455\Messaging\Frame;
 use Ratchet\RFC6455\Messaging\FrameInterface;
 use Ratchet\RFC6455\Messaging\Message;
 use Ratchet\RFC6455\Messaging\MessageBuffer;
+use Ratchet\RFC6455\Messaging\MessageInterface;
 use Rx\DisposableInterface;
 use Rx\Observable;
 use Rx\Observer\CallbackObserver;
@@ -60,9 +61,8 @@ class MessageSubject extends Subject
         RequestInterface $request,
         ResponseInterface $response
     ) {
-        $this->request  = $request;
-        $this->response = $response;
-
+        $this->request     = $request;
+        $this->response    = $response;
         $this->rawDataIn   = $rawDataIn;
         $this->rawDataOut  = $rawDataOut;
         $this->mask        = $mask;
@@ -70,7 +70,7 @@ class MessageSubject extends Subject
 
         $messageBuffer = new MessageBuffer(
             new CloseFrameChecker(),
-            function (\Ratchet\RFC6455\Messaging\MessageInterface $msg) use ($useMessageObject) {
+            function (MessageInterface $msg) use ($useMessageObject) {
                 parent::onNext($useMessageObject ? $msg : $msg->getPayload());
             },
             function (FrameInterface $frame) use ($rawDataOut) {

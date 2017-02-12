@@ -43,10 +43,11 @@ class Client extends Observable
         $loop = \EventLoop\getLoop();
 
         $dnsResolverFactory = new Factory();
+
         $dnsResolver = $dnsResolverFactory->createCached('8.8.8.8', $loop);
 
         $factory = new \React\HttpClient\Factory();
-        $client = $factory->create($loop, $dnsResolver);
+        $client  = $factory->create($loop, $dnsResolver);
 
         $cNegotiator = new ClientNegotiator();
 
@@ -58,7 +59,7 @@ class Client extends Observable
                 ->withoutHeader('Sec-WebSocket-Protocol')
                 ->withHeader('Sec-WebSocket-Protocol', $this->subProtocols);
         }
-        
+
         $headers = $nRequest->getHeaders();
 
         $flatHeaders = [];
@@ -66,13 +67,13 @@ class Client extends Observable
             $flatHeaders[$k] = $v[0];
         }
 
-        $request = $client->request("GET", $this->url, $flatHeaders, '1.1');
+        $request = $client->request('GET', $this->url, $flatHeaders, '1.1');
 
         $request->on('response', function (Response $response, Request $request) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
             if ($response->getCode() !== 101) {
-                throw new \Exception("Unexpected response code " . $response->getCode());
+                throw new \Exception('Unexpected response code ' . $response->getCode());
             }
-            
+
             $psr7Response = new \GuzzleHttp\Psr7\Response(
                 $response->getCode(),
                 $response->getHeaders(),
@@ -80,17 +81,17 @@ class Client extends Observable
                 $response->getVersion()
             );
 
-            $psr7Request = new \GuzzleHttp\Psr7\Request("GET", $this->url, $flatHeaders);
-            
+            $psr7Request = new \GuzzleHttp\Psr7\Request('GET', $this->url, $flatHeaders);
+
             if (!$cNegotiator->validateResponse($psr7Request, $psr7Response)) {
-                throw new \Exception("Invalid response");
+                throw new \Exception('Invalid response');
             }
 
             $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol');
 
             $clientObserver->onNext(new MessageSubject(
                 new AnonymousObservable(function (ObserverInterface $observer, SchedulerInterface $scheduler) use ($response, $clientObserver) {
-                    
+
                     $response->on('data', function ($data) use ($observer) {
                         $observer->onNext($data);
                     });
