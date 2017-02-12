@@ -81,6 +81,15 @@ class MessageSubject extends Subject
                     case Frame::OP_CLOSE:
                         // send close frame to remote
                         $this->sendFrame($frame);
+
+                        // get close code
+                        list($closeCode) = array_merge(unpack('n*', substr($frame->getPayload(), 0, 2)));
+                        if ($closeCode !== 1000) {
+                            // emit close code as error
+                            $exception = new WebsocketErrorException($closeCode);
+                            parent::onError($exception);
+                        }
+
                         // complete output stream
                         $rawDataOut->onCompleted();
 
