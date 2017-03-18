@@ -30,8 +30,8 @@
     "require": {
         "react/http": "^0.4.1",
         "react/http-client": "^0.4.10",
-        "voryx/event-loop": "^0.2.1",
-        "reactivex/rxphp": "^1.5.1",
+        "voryx/event-loop": "^2.0",
+        "reactivex/rxphp": "2.x-dev",
         "ratchet/rfc6455": "^0.2.2"
     },
     "require-dev": {

@@ -5,9 +5,11 @@ namespace Rx\Websocket;
 use GuzzleHttp\Psr7\Uri;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
+use React\EventLoop\LoopInterface;
 use React\Http\Request;
 use React\Http\Response;
 use Rx\Disposable\CallbackDisposable;
+use Rx\DisposableInterface;
 use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
 use Rx\Observer\CallbackObserver;
@@ -16,33 +18,23 @@ use Rx\ObserverInterface;
 class Server extends Observable
 {
     protected $bindAddress;
-
     protected $port;
-
-    /** @var bool */
     private $useMessageObject;
-
-    /** @var array */
     private $subProtocols;
+    private $loop;
 
-    /**
-     * Server constructor.
-     * @param $bindAddress
-     * @param $port
-     * @param bool $useMessageObject
-     * @param array $subProtocols
-     */
-    public function __construct($bindAddress, $port, $useMessageObject = false, array $subProtocols = [])
+    public function __construct(string $bindAddress, int $port, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null)
     {
         $this->bindAddress      = $bindAddress;
         $this->port             = $port;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
+        $this->loop             = $loop ?: \EventLoop\getLoop();
     }
 
-    public function subscribe(ObserverInterface $observer, $scheduler = null)
+    public function _subscribe(ObserverInterface $observer): DisposableInterface
     {
-        $socket = new \React\Socket\Server(\EventLoop\getLoop());
+        $socket = new \React\Socket\Server($this->loop);
 
         $negotiator = new ServerNegotiator(new RequestVerifier());
         if (!empty($this->subProtocols)) {
@@ -131,13 +123,6 @@ class Server extends Observable
         });
 
         $socket->listen($this->port, $this->bindAddress);
-
-//        $http->on('end', function () {});
-//        $http->on('data', function () {});
-//        $http->on('pause', function () {});
-//        $http->on('resume', function () {});
-
-        $this->started = true;
 
         return new CallbackDisposable(function () use ($socket) {
             $socket->shutdown();

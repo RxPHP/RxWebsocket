@@ -10,53 +10,26 @@ use Ratchet\RFC6455\Messaging\FrameInterface;
 use Ratchet\RFC6455\Messaging\Message;
 use Ratchet\RFC6455\Messaging\MessageBuffer;
 use Ratchet\RFC6455\Messaging\MessageInterface;
-use Rx\DisposableInterface;
 use Rx\Observable;
-use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
 use Rx\Subject\Subject;
 
 class MessageSubject extends Subject
 {
-    /** @var Observable */
     protected $rawDataIn;
-
-    /** @var ObserverInterface */
     protected $rawDataOut;
-
-    /** @var bool */
     protected $mask;
-
-    /** @var Observable */
     protected $controlFrames;
-
-    /** @var string */
     private $subProtocol;
-
-    /** @var RequestInterface */
     private $request;
-
-    /** @var ResponseInterface */
     private $response;
-
-    /** @var DisposableInterface */
     private $rawDataDisp;
 
-    /**
-     * ConnectionSubject constructor.
-     * @param Observable $rawDataIn
-     * @param ObserverInterface $rawDataOut
-     * @param bool $mask
-     * @param bool $useMessageObject
-     * @param string $subProtocol
-     * @param RequestInterface $request
-     * @param ResponseInterface $response
-     */
     public function __construct(
         Observable $rawDataIn,
         ObserverInterface $rawDataOut,
-        $mask = false,
-        $useMessageObject = false,
+        bool $mask = false,
+        bool $useMessageObject = false, 
         $subProtocol = "",
         RequestInterface $request,
         ResponseInterface $response
@@ -101,23 +74,21 @@ class MessageSubject extends Subject
             !$this->mask
         );
 
-        $this->rawDataDisp = $this->rawDataIn
-            ->subscribe(new CallbackObserver(
-                function ($data) use ($messageBuffer) {
-                    $messageBuffer->onData($data);
-                },
-                function (\Exception $exception) {
-                    parent::onError($exception);
-                },
-                function () {
-                    parent::onCompleted();
-                }
-            ));
+        $this->rawDataDisp = $this->rawDataIn->subscribe(
+            function ($data) use ($messageBuffer) {
+                $messageBuffer->onData($data);
+            },
+            function (\Exception $exception) {
+                parent::onError($exception);
+            },
+            function () {
+                parent::onCompleted();
+            });
 
         $this->subProtocol = $subProtocol;
     }
 
-    private function createCloseFrame($closeCode = Frame::CLOSE_NORMAL)
+    private function createCloseFrame(int $closeCode = Frame::CLOSE_NORMAL): Frame
     {
         $frame = new Frame(pack('n', $closeCode), true, Frame::OP_CLOSE);
         if ($this->mask) {
@@ -141,10 +112,7 @@ class MessageSubject extends Subject
         $this->rawDataOut->onNext($frame->getContents());
     }
 
-    /**
-     * @return Observable
-     */
-    public function getControlFrames()
+    public function getControlFrames(): Observable
     {
         return $this->controlFrames;
     }
@@ -160,7 +128,7 @@ class MessageSubject extends Subject
         $this->sendFrame(new Frame($value));
     }
 
-    public function onError(\Exception $exception)
+    public function onError(\Throwable $exception)
     {
         $this->rawDataDisp->dispose();
 
@@ -174,26 +142,17 @@ class MessageSubject extends Subject
         parent::onCompleted();
     }
 
-    /**
-     * @return string
-     */
-    public function getSubProtocol()
+    public function getSubProtocol(): string
     {
         return $this->subProtocol;
     }
 
-    /**
-     * @return RequestInterface
-     */
-    public function getRequest()
+    public function getRequest(): RequestInterface
     {
         return $this->request;
     }
 
-    /**
-     * @return ResponseInterface
-     */
-    public function getResponse()
+    public function getResponse(): ResponseInterface
     {
         return $this->response;
     }
