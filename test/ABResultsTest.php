@@ -2,7 +2,7 @@
 
 namespace Rx\Websocket\Test;
 
-class ABResultsTest extends TestCase
+class ABResultsTest extends \PHPUnit_Framework_TestCase
 {
     private function verifyAutobahnResults($fileName)
     {
@@ -17,7 +17,7 @@ class ABResultsTest extends TestCase
             if ($result->behavior === "INFORMATIONAL") {
                 continue;
             }
-            $this->assertEquals("OK", $result->behavior, "Autobahn test case " . $name . " in " . $fileName);
+            $this->assertTrue("OK" === $result->behavior || "NON-STRICT" === $result->behavior, "Autobahn test case " . $name . " in " . $fileName);
         }
     }
 

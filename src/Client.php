@@ -2,18 +2,19 @@
 
 namespace Rx\Websocket;
 
-use Exception;
-use Rx\Websocket\RFC6455\Handshake\ClientNegotiator;
+use GuzzleHttp\Psr7\Uri;
+use Ratchet\RFC6455\Handshake\ClientNegotiator;
 use React\Dns\Resolver\Factory;
 use React\HttpClient\Request;
 use React\HttpClient\Response;
 use Rx\Disposable\CallbackDisposable;
+use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
-use Rx\Subject\Subject;
+use Rx\SchedulerInterface;
 
-class Client extends Subject
+class Client extends Observable
 {
     /** @var string */
     protected $url;
@@ -32,40 +33,46 @@ class Client extends Subject
      */
     public function __construct($url, $useMessageObject = false, array $subProtocols = [])
     {
-        $this->url = $url;
+        $this->url              = $url;
         $this->useMessageObject = $useMessageObject;
-        $this->subProtocols = $subProtocols;
+        $this->subProtocols     = $subProtocols;
     }
 
-    private function startConnection()
+    public function subscribe(ObserverInterface $clientObserver, $scheduler = null)
     {
         $loop = \EventLoop\getLoop();
 
         $dnsResolverFactory = new Factory();
+
         $dnsResolver = $dnsResolverFactory->createCached('8.8.8.8', $loop);
 
         $factory = new \React\HttpClient\Factory();
-        $client = $factory->create($loop, $dnsResolver);
+        $client  = $factory->create($loop, $dnsResolver);
 
-        $cNegotiator = new ClientNegotiator($this->url, $this->subProtocols);
+        $cNegotiator = new ClientNegotiator();
 
-        $headers = $cNegotiator->getRequest()->getHeaders();
+        /** @var \GuzzleHttp\Psr7\Request $nRequest */
+        $nRequest = $cNegotiator->generateRequest(new Uri($this->url));
+
+        if (!empty($this->subProtocols)) {
+            $nRequest = $nRequest
+                ->withoutHeader('Sec-WebSocket-Protocol')
+                ->withHeader('Sec-WebSocket-Protocol', $this->subProtocols);
+        }
+
+        $headers = $nRequest->getHeaders();
 
         $flatHeaders = [];
         foreach ($headers as $k => $v) {
             $flatHeaders[$k] = $v[0];
         }
 
-        $request = $client->request("GET", $this->url, $flatHeaders, '1.1');
+        $request = $client->request('GET', $this->url, $flatHeaders, '1.1');
 
-        $request->on('response', function (Response $response, Request $request) use ($cNegotiator) {
+        $request->on('response', function (Response $response, Request $request) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
             if ($response->getCode() !== 101) {
-                throw new \Exception("Unexpected response code " . $response->getCode());
+                throw new \Exception('Unexpected response code ' . $response->getCode());
             }
-            // TODO: Should validate response
-            //$cNegotiator->validateResponse($response);
-
-            $subprotoHeader = "";
 
             $psr7Response = new \GuzzleHttp\Psr7\Response(
                 $response->getCode(),
@@ -74,12 +81,17 @@ class Client extends Subject
                 $response->getVersion()
             );
 
-            if (count($psr7Response->getHeader('Sec-WebSocket-Protocol')) == 1) {
-                $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol')[0];
+            $psr7Request = new \GuzzleHttp\Psr7\Request('GET', $this->url, $flatHeaders);
+
+            if (!$cNegotiator->validateResponse($psr7Request, $psr7Response)) {
+                throw new \Exception('Invalid response');
             }
 
-            parent::onNext(new MessageSubject(
-                new AnonymousObservable(function (ObserverInterface $observer) use ($response) {
+            $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol');
+
+            $clientObserver->onNext(new MessageSubject(
+                new AnonymousObservable(function (ObserverInterface $observer, SchedulerInterface $scheduler) use ($response, $clientObserver) {
+
                     $response->on('data', function ($data) use ($observer) {
                         $observer->onNext($data);
                     });
@@ -92,11 +104,11 @@ class Client extends Subject
                         $observer->onCompleted();
                     });
 
-                    $response->on('end', function () use ($observer) {
+                    $response->on('end', function () use ($observer, $clientObserver) {
                         $observer->onCompleted();
 
                         // complete the parent observer - we only do 1 connection
-                        parent::onCompleted();
+                        $clientObserver->onCompleted();
                     });
 
 
@@ -104,6 +116,7 @@ class Client extends Subject
                         // commented this out because disposal was causing the other
                         // end (the request) to close also - which causes the pending messages
                         // to get tossed
+                        // maybe try with $response->end()?
                         //$response->close();
                     });
                 }),
@@ -121,41 +134,15 @@ class Client extends Subject
                 true,
                 $this->useMessageObject,
                 $subprotoHeader,
-                $cNegotiator->getRequest(),
+                $nRequest,
                 $psr7Response
             ));
         });
 
         $request->writeHead();
-    }
 
-    public function subscribe(ObserverInterface $observer, $scheduler = null)
-    {
-        if (!$this->isStopped) {
-            $this->startConnection();
-        }
-
-        return parent::subscribe($observer, $scheduler);
-    }
-
-    public function send($value)
-    {
-        $this->onNext($value);
-    }
-
-    // Not sure we need this object to be a subject - just being an observer should be good enough I think
-    public function onNext($value)
-    {
-
-    }
-
-    public function onError(Exception $exception)
-    {
-
-    }
-
-    public function onCompleted()
-    {
-
+        return new CallbackDisposable(function () use ($request) {
+            $request->close();
+        });
     }
 }

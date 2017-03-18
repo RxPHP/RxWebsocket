@@ -6,21 +6,19 @@ Rx\Websocket is a PHP Websocket library.
 
 #### Client
 ```php
-<?php
+$client = new \Rx\Websocket\Client('ws://127.0.0.1:9191/');
 
-require_once __DIR__ . '/vendor/autoload.php';
-
-$client = new \Rx\Websocket\Client("ws://127.0.0.1:9191/");
-
-$client->subscribe(new \Rx\Observer\CallbackObserver(
+$client->subscribeCallback(
     function (\Rx\Websocket\MessageSubject $ms) {
-        $ms->subscribe(new \Rx\Observer\CallbackObserver(
+        $ms->subscribeCallback(
             function ($message) {
                 echo $message . "\n";
             }
-        ));
+        );
 
-        $sayHello = function () use ($ms) { $ms->onNext("Hello"); };
+        $sayHello = function () use ($ms) {
+            $ms->onNext('Hello');
+        };
 
         $sayHello();
         \EventLoop\addPeriodicTimer(5, $sayHello);
@@ -31,43 +29,27 @@ $client->subscribe(new \Rx\Observer\CallbackObserver(
     function () {
         // stopped trying to connect here
     }
-));
+);
 ```
 
 #### An Echo Server
 ```php
-<?php
+$server = new \Rx\Websocket\Server('127.0.0.1', 9191);
 
-require_once __DIR__ . "/vendor/autoload.php";
-
-$server = new \Rx\Websocket\Server("127.0.0.1", 9191);
-
-$server
-    ->subscribe(new \Rx\Observer\CallbackObserver(
-        function (\Rx\Websocket\MessageSubject $cs) {
-            $cs->subscribe($cs);
-        }
-    ));
+$server->subscribeCallback(function (\Rx\Websocket\MessageSubject $cs) {
+    $cs->subscribe($cs);
+});
 ```
 
 #### Server that dumps everything to the console
 ```php
-<?php
-
-require_once __DIR__ . '/vendor/autoload.php';
-
 $server = new \Rx\Websocket\Server('127.0.0.1', 9191);
 
-$server
-    ->subscribe(new \Rx\Observer\CallbackObserver(
-        function (\Rx\Websocket\MessageSubject $cs) {
-            $cs->subscribe(new \Rx\Observer\CallbackObserver(
-                function ($message) {
-                    echo $message;
-                }
-            ));
-        }
-    ));
+$server->subscribeCallback(function (\Rx\Websocket\MessageSubject $cs) {
+    $cs->subscribeCallback(function ($message) {
+        echo $message;
+    });
+});
 ```
 
 ## Installation

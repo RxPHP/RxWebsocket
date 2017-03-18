@@ -2,7 +2,7 @@
 
 namespace Rx\Websocket;
 
-use Rx\Websocket\RFC6455\Messaging\Protocol\Frame;
+use Ratchet\RFC6455\Messaging\Frame;
 
 class WebsocketErrorException extends \Exception
 {
