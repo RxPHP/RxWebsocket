@@ -33,5 +33,8 @@
         "voryx/event-loop": "^0.2.1",
         "reactivex/rxphp": "^1.5.1",
         "ratchet/rfc6455": "^0.2.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "5"
     }
 }
