@@ -1,3 +1,7 @@
+# 1.0.0
+
+- Upgrade to RxPHP v2
+
 # 0.10.0
 
 ## Changes/Additions
