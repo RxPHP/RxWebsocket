@@ -15,7 +15,6 @@ use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
-use Rx\SchedulerInterface;
 
 class Client extends Observable
 {
