@@ -5,49 +5,38 @@ namespace Rx\Websocket;
 use GuzzleHttp\Psr7\Uri;
 use Ratchet\RFC6455\Handshake\ClientNegotiator;
 use React\Dns\Resolver\Factory;
+use React\Dns\Resolver\Resolver;
+use React\EventLoop\LoopInterface;
 use React\HttpClient\Request;
 use React\HttpClient\Response;
 use Rx\Disposable\CallbackDisposable;
+use Rx\DisposableInterface;
 use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
-use Rx\SchedulerInterface;
 
 class Client extends Observable
 {
-    /** @var string */
     protected $url;
-
-    /** @var bool */
     private $useMessageObject;
-
-    /** @var array */
     private $subProtocols;
+    private $loop;
+    private $dnsResolver;
 
-    /**
-     * Websocket constructor.
-     * @param $url
-     * @param bool $useMessageObject
-     * @param array $subProtocols
-     */
-    public function __construct($url, $useMessageObject = false, array $subProtocols = [])
+    public function __construct(string $url, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, Resolver $dnsResolver = null)
     {
         $this->url              = $url;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
+        $this->loop             = $loop ?: \EventLoop\getLoop();
+        $this->dnsResolver      = $dnsResolver ?: (new Factory())->createCached('8.8.8.8', $this->loop);
     }
 
-    public function subscribe(ObserverInterface $clientObserver, $scheduler = null)
+    public function _subscribe(ObserverInterface $clientObserver): DisposableInterface
     {
-        $loop = \EventLoop\getLoop();
-
-        $dnsResolverFactory = new Factory();
-
-        $dnsResolver = $dnsResolverFactory->createCached('8.8.8.8', $loop);
-
         $factory = new \React\HttpClient\Factory();
-        $client  = $factory->create($loop, $dnsResolver);
+        $client  = $factory->create($this->loop, $this->dnsResolver);
 
         $cNegotiator = new ClientNegotiator();
 
@@ -90,7 +79,7 @@ class Client extends Observable
             $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol');
 
             $clientObserver->onNext(new MessageSubject(
-                new AnonymousObservable(function (ObserverInterface $observer, SchedulerInterface $scheduler) use ($response, $clientObserver) {
+                new AnonymousObservable(function (ObserverInterface $observer) use ($response, $clientObserver) {
 
                     $response->on('data', function ($data) use ($observer) {
                         $observer->onNext($data);
@@ -110,7 +99,6 @@ class Client extends Observable
                         // complete the parent observer - we only do 1 connection
                         $clientObserver->onCompleted();
                     });
-
 
                     return new CallbackDisposable(function () use ($response) {
                         // commented this out because disposal was causing the other

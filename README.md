@@ -8,9 +8,9 @@ Rx\Websocket is a PHP Websocket library.
 ```php
 $client = new \Rx\Websocket\Client('ws://127.0.0.1:9191/');
 
-$client->subscribeCallback(
+$client->subscribe(
     function (\Rx\Websocket\MessageSubject $ms) {
-        $ms->subscribeCallback(
+        $ms->subscribe(
             function ($message) {
                 echo $message . "\n";
             }
@@ -36,7 +36,7 @@ $client->subscribeCallback(
 ```php
 $server = new \Rx\Websocket\Server('127.0.0.1', 9191);
 
-$server->subscribeCallback(function (\Rx\Websocket\MessageSubject $cs) {
+$server->subscribe(function (\Rx\Websocket\MessageSubject $cs) {
     $cs->subscribe($cs);
 });
 ```
@@ -45,8 +45,8 @@ $server->subscribeCallback(function (\Rx\Websocket\MessageSubject $cs) {
 ```php
 $server = new \Rx\Websocket\Server('127.0.0.1', 9191);
 
-$server->subscribeCallback(function (\Rx\Websocket\MessageSubject $cs) {
-    $cs->subscribeCallback(function ($message) {
+$server->subscribe(function (\Rx\Websocket\MessageSubject $cs) {
+    $cs->subscribe(function ($message) {
         echo $message;
     });
 });

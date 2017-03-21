@@ -1,7 +1,7 @@
 {
     "name": "rx/websocket",
     "type": "library",
-    "description": "Async Websockets for PHP using Rx",
+    "description": "Websockets for PHP using Rx",
     "keywords": [
         "websocket",
         "websockets",
@@ -30,11 +30,11 @@
     "require": {
         "react/http": "^0.4.1",
         "react/http-client": "^0.4.10",
-        "voryx/event-loop": "^0.2.1",
-        "reactivex/rxphp": "^1.5.1",
-        "ratchet/rfc6455": "^0.2.2"
+        "voryx/event-loop": "^2.0",
+        "ratchet/rfc6455": "^0.2.2",
+        "reactivex/rxphp": "^2.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^5.7.0"
+        "phpunit/phpunit": "~5.7.0"
     }
 }

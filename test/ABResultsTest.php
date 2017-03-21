@@ -17,7 +17,7 @@ class ABResultsTest extends \PHPUnit_Framework_TestCase
             if ($result->behavior === "INFORMATIONAL") {
                 continue;
             }
-            $this->assertTrue("OK" === $result->behavior || "NON-STRICT" === $result->behavior, "Autobahn test case " . $name . " in " . $fileName);
+            $this->assertContains($result->behavior, ['OK', 'NON-STRICT'], "Autobahn test case " . $name . " in " . $fileName);
         }
     }
 

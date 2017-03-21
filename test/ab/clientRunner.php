@@ -10,9 +10,9 @@ $runReports = function () {
     echo "Generating report.\n";
 
     $reportUrl = "ws://127.0.0.1:9001/updateReports?agent=" . AGENT . "&shutdownOnComplete=true";
-    $client = new \Rx\Websocket\Client($reportUrl);
+    $client    = new \Rx\Websocket\Client($reportUrl);
 
-    $client->subscribe(new \Rx\Observer\CallbackObserver());
+    $client->subscribe();
 };
 
 $runIndividualTest = function ($case) {
@@ -24,7 +24,7 @@ $runIndividualTest = function ($case) {
 
     $deferred = new \React\Promise\Deferred();
 
-    $client->subscribe(new \Rx\Observer\CallbackObserver(
+    $client->subscribe(
         function (\Rx\Websocket\MessageSubject $messages) {
             $messages->subscribe(new \Rx\Observer\CallbackObserver(
                 function ($x) use ($messages) {
@@ -43,7 +43,7 @@ $runIndividualTest = function ($case) {
             echo "Finished " . $case . "\n";
             $deferred->resolve();
         }
-    ));
+    );
 
     return $deferred->promise();
 };
@@ -76,9 +76,9 @@ $client
     ->flatMap(function ($x) {
         return $x;
     })
-    ->subscribe(new \Rx\Observer\CallbackObserver(
+    ->subscribe(
         $runTests,
         function ($error) {
             echo $error . "\n";
         }
-    ));
+    );
