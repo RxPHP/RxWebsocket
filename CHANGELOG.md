@@ -1,3 +1,7 @@
+# 1.0.1
+
+- Connection errors are now sent to `onError` #6 ([a880353](https://github.com/RxPHP/RxWebsocket/commit/a88035322fea54638d67d67985e8f938200155cd))
+
 # 1.0.0
 
 - Upgrade to RxPHP v2
