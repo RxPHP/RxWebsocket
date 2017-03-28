@@ -58,6 +58,10 @@ class Client extends Observable
 
         $request = $client->request('GET', $this->url, $flatHeaders, '1.1');
 
+        $request->on('error', function ($error) use ($clientObserver) {
+            $clientObserver->onError($error);
+        });
+
         $request->on('response', function (Response $response, Request $request) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
             if ($response->getCode() !== 101) {
                 throw new \Exception('Unexpected response code ' . $response->getCode());
