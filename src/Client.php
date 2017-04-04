@@ -83,7 +83,7 @@ class Client extends Observable
             $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol');
 
             $clientObserver->onNext(new MessageSubject(
-                new AnonymousObservable(function (ObserverInterface $observer) use ($response, $clientObserver) {
+                new AnonymousObservable(function (ObserverInterface $observer) use ($response, $request, $clientObserver) {
 
                     $response->on('data', function ($data) use ($observer) {
                         $observer->onNext($data);
@@ -104,12 +104,8 @@ class Client extends Observable
                         $clientObserver->onCompleted();
                     });
 
-                    return new CallbackDisposable(function () use ($response) {
-                        // commented this out because disposal was causing the other
-                        // end (the request) to close also - which causes the pending messages
-                        // to get tossed
-                        // maybe try with $response->end()?
-                        //$response->close();
+                    return new CallbackDisposable(function () use ($request) {
+                        $request->end();
                     });
                 }),
                 new CallbackObserver(
