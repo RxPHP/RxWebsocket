@@ -1,3 +1,7 @@
+# 1.0.2
+
+- End the request not the response when dispose is called ([b77c5118](https://github.com/RxPHP/RxWebsocket/commit/b77c5118c14d34e034b19383974337aec05d787a))
+
 # 1.0.1
 
 - Connection errors are now sent to `onError` #6 ([a880353](https://github.com/RxPHP/RxWebsocket/commit/a88035322fea54638d67d67985e8f938200155cd))
