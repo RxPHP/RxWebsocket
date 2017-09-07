@@ -27,9 +27,14 @@
             "Rx\\Websocket\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Rx\\Websocket\\Test\\": "tests/"
+        }
+    },
     "require": {
-        "react/http": "^0.4.1",
-        "react/http-client": "^0.4.10",
+        "react/http": "^0.7.3",
+        "react/http-client": "^0.5.3",
         "voryx/event-loop": "^2.0",
         "ratchet/rfc6455": "^0.2.2",
         "reactivex/rxphp": "^2.0"

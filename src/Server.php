@@ -2,12 +2,14 @@
 
 namespace Rx\Websocket;
 
-use GuzzleHttp\Psr7\Uri;
+use Psr\Http\Message\ServerRequestInterface;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use React\EventLoop\LoopInterface;
-use React\Http\Request;
 use React\Http\Response;
+use React\Stream\CompositeStream;
+use React\Stream\ReadableStreamInterface;
+use React\Stream\ThroughStream;
 use Rx\Disposable\CallbackDisposable;
 use Rx\DisposableInterface;
 use Rx\Observable;
@@ -23,10 +25,9 @@ class Server extends Observable
     private $subProtocols;
     private $loop;
 
-    public function __construct(string $bindAddress, int $port, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null)
+    public function __construct(string $bindAddressOrPort, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null)
     {
-        $this->bindAddress      = $bindAddress;
-        $this->port             = $port;
+        $this->bindAddress      = $bindAddressOrPort;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
         $this->loop             = $loop ?: \EventLoop\getLoop();
@@ -34,19 +35,15 @@ class Server extends Observable
 
     public function _subscribe(ObserverInterface $observer): DisposableInterface
     {
-        $socket = new \React\Socket\Server($this->loop);
+        $socket = new \React\Socket\Server($this->bindAddress, $this->loop);
 
         $negotiator = new ServerNegotiator(new RequestVerifier());
         if (!empty($this->subProtocols)) {
             $negotiator->setSupportedSubProtocols($this->subProtocols);
         }
 
-        $http = new \React\Http\Server($socket);
-        $http->on('request', function (Request $request, Response $response) use ($negotiator, $observer, &$outStream) {
-            $uri = new Uri($request->getPath());
-            if (count($request->getQuery()) > 0) {
-                $uri = $uri->withQuery(\GuzzleHttp\Psr7\build_query($request->getQuery()));
-            }
+        $http = new \React\Http\Server(function (ServerRequestInterface $request) use ($negotiator, $observer) {
+            $uri = $request->getUri();
 
             $psrRequest = new \GuzzleHttp\Psr7\Request(
                 $request->getMethod(),
@@ -56,20 +53,28 @@ class Server extends Observable
 
             // cram the remote address into the header in our own X- header so
             // the user will have access to it
-            $psrRequest = $psrRequest->withAddedHeader('X-RxWebsocket-Remote-Address', $request->remoteAddress);
+            $psrRequest = $psrRequest->withAddedHeader('X-RxWebsocket-Remote-Address', $request->getServerParams()['REMOTE_ADDR'] ?? '');
 
             $negotiatorResponse = $negotiator->handshake($psrRequest);
 
-            $response->writeHead(
+            /** @var ReadableStreamInterface $requestStream */
+            $requestStream  = new ThroughStream();
+            $responseStream = new ThroughStream();
+
+            $response = new Response(
                 $negotiatorResponse->getStatusCode(),
                 array_merge(
-                    $negotiatorResponse->getHeaders(),
-                    ['Content-Length' => '0']
+                    $negotiatorResponse->getHeaders()
+                ),
+                new CompositeStream(
+                    $responseStream,
+                    $requestStream
                 )
             );
 
+
             if ($negotiatorResponse->getStatusCode() !== 101) {
-                $response->end();
+                $responseStream->end();
                 return;
             }
 
@@ -78,38 +83,38 @@ class Server extends Observable
                 $subProtocol = $negotiatorResponse->getHeader('Sec-WebSocket-Protocol')[0];
             }
 
-            $connection = new MessageSubject(
+            $messageSubject = new MessageSubject(
                 new AnonymousObservable(
-                    function (ObserverInterface $observer) use ($request) {
-                        $request->on('data', function ($data) use ($observer) {
+                    function (ObserverInterface $observer) use ($requestStream) {
+                        $requestStream->on('data', function ($data) use ($observer) {
                             $observer->onNext($data);
                         });
-                        $request->on('error', function ($error) use ($observer) {
+                        $requestStream->on('error', function ($error) use ($observer) {
                             $observer->onError($error);
                         });
-                        $request->on('close', function () use ($observer) {
+                        $requestStream->on('close', function () use ($observer) {
                             $observer->onCompleted();
                         });
-                        $request->on('end', function () use ($observer) {
+                        $requestStream->on('end', function () use ($observer) {
                             $observer->onCompleted();
                         });
 
                         return new CallbackDisposable(
-                            function () use ($request) {
-                                $request->close();
+                            function () use ($requestStream) {
+                                $requestStream->close();
                             }
                         );
                     }
                 ),
                 new CallbackObserver(
-                    function ($x) use ($response) {
-                        $response->write($x);
+                    function ($x) use ($responseStream) {
+                        $responseStream->write($x);
                     },
-                    function ($error) use ($response) {
-                        $response->close();
+                    function ($error) use ($responseStream) {
+                        $responseStream->close();
                     },
-                    function () use ($response) {
-                        $response->end();
+                    function () use ($responseStream) {
+                        $responseStream->end();
                     }
                 ),
                 false,
@@ -119,13 +124,15 @@ class Server extends Observable
                 $negotiatorResponse
             );
 
-            $observer->onNext($connection);
+            $observer->onNext($messageSubject);
+
+            return $response;
         });
 
-        $socket->listen($this->port, $this->bindAddress);
+        $http->listen($socket);
 
         return new CallbackDisposable(function () use ($socket) {
-            $socket->shutdown();
+            $socket->close();
         });
     }
 }

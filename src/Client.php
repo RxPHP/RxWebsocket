@@ -4,11 +4,10 @@ namespace Rx\Websocket;
 
 use GuzzleHttp\Psr7\Uri;
 use Ratchet\RFC6455\Handshake\ClientNegotiator;
-use React\Dns\Resolver\Factory;
-use React\Dns\Resolver\Resolver;
 use React\EventLoop\LoopInterface;
 use React\HttpClient\Request;
 use React\HttpClient\Response;
+use React\Socket\ConnectorInterface;
 use Rx\Disposable\CallbackDisposable;
 use Rx\DisposableInterface;
 use Rx\Observable;
@@ -22,21 +21,33 @@ class Client extends Observable
     private $useMessageObject;
     private $subProtocols;
     private $loop;
-    private $dnsResolver;
+    private $connector;
 
-    public function __construct(string $url, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, Resolver $dnsResolver = null)
+    public function __construct(string $url, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, ConnectorInterface $connector = null)
     {
+        $parsedUrl = parse_url($url);
+        if (!isset($parsedUrl['scheme']) || !in_array($parsedUrl['scheme'], ['wss', 'ws'])) {
+            throw new \InvalidArgumentException('url must use either ws or wss scheme');
+        }
+
+        if ($parsedUrl['scheme'] === 'wss') {
+            $url = 'https://' . substr($url, 6);
+        }
+
+        if ($parsedUrl['scheme'] === 'ws') {
+            $url = 'http://' . substr($url, 5);
+        }
+
         $this->url              = $url;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
         $this->loop             = $loop ?: \EventLoop\getLoop();
-        $this->dnsResolver      = $dnsResolver ?: (new Factory())->createCached('8.8.8.8', $this->loop);
+        $this->connector        = $connector;
     }
 
     public function _subscribe(ObserverInterface $clientObserver): DisposableInterface
     {
-        $factory = new \React\HttpClient\Factory();
-        $client  = $factory->create($this->loop, $this->dnsResolver);
+        $client = new \React\HttpClient\Client($this->loop, $this->connector);
 
         $cNegotiator = new ClientNegotiator();
 
@@ -127,7 +138,8 @@ class Client extends Observable
             ));
         });
 
-        $request->writeHead();
+        // empty write to force connection and header send
+        $request->write('');
 
         return new CallbackDisposable(function () use ($request) {
             $request->close();
