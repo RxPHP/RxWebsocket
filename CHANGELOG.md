@@ -9,7 +9,7 @@ $server = new \Rx\Websocket\Server('127.0.0.1', 9191);
 ```
 after
 ```PHP
-$server = new \Rx\Websocket\Server('tcp://127.0.0.1:9191');
+$server = new \Rx\Websocket\Server('127.0.0.1:9191');
 ```
 
 # 1.0.2
