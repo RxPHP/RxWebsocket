@@ -2,11 +2,14 @@
 
 namespace Rx\Websocket;
 
+use GuzzleHttp\Psr7\Request;
 use Psr\Http\Message\ServerRequestInterface;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use React\EventLoop\LoopInterface;
 use React\Http\Response;
+use React\Http\Server as HttpServer;
+use React\Socket\Server as SocketServer;
 use React\Stream\CompositeStream;
 use React\Stream\ReadableStreamInterface;
 use React\Stream\ThroughStream;
@@ -35,17 +38,17 @@ class Server extends Observable
 
     public function _subscribe(ObserverInterface $observer): DisposableInterface
     {
-        $socket = new \React\Socket\Server($this->bindAddress, $this->loop);
+        $socket = new SocketServer($this->bindAddress, $this->loop);
 
         $negotiator = new ServerNegotiator(new RequestVerifier());
         if (!empty($this->subProtocols)) {
             $negotiator->setSupportedSubProtocols($this->subProtocols);
         }
 
-        $http = new \React\Http\Server(function (ServerRequestInterface $request) use ($negotiator, $observer) {
+        $http = new HttpServer(function (ServerRequestInterface $request) use ($negotiator, $observer) {
             $uri = $request->getUri();
 
-            $psrRequest = new \GuzzleHttp\Psr7\Request(
+            $psrRequest = new Request(
                 $request->getMethod(),
                 $uri,
                 $request->getHeaders()

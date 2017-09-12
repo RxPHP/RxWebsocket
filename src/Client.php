@@ -2,9 +2,12 @@
 
 namespace Rx\Websocket;
 
+use GuzzleHttp\Psr7\Request as Psr7Request;
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use GuzzleHttp\Psr7\Uri;
 use Ratchet\RFC6455\Handshake\ClientNegotiator;
 use React\EventLoop\LoopInterface;
+use React\HttpClient\Client as HttpClient;
 use React\HttpClient\Request;
 use React\HttpClient\Response;
 use React\Socket\ConnectorInterface;
@@ -47,11 +50,11 @@ class Client extends Observable
 
     public function _subscribe(ObserverInterface $clientObserver): DisposableInterface
     {
-        $client = new \React\HttpClient\Client($this->loop, $this->connector);
+        $client = new HttpClient($this->loop, $this->connector);
 
         $cNegotiator = new ClientNegotiator();
 
-        /** @var \GuzzleHttp\Psr7\Request $nRequest */
+        /** @var Psr7Request $nRequest */
         $nRequest = $cNegotiator->generateRequest(new Uri($this->url));
 
         if (!empty($this->subProtocols)) {
@@ -78,14 +81,14 @@ class Client extends Observable
                 throw new \Exception('Unexpected response code ' . $response->getCode());
             }
 
-            $psr7Response = new \GuzzleHttp\Psr7\Response(
+            $psr7Response = new Psr7Response(
                 $response->getCode(),
                 $response->getHeaders(),
                 null,
                 $response->getVersion()
             );
 
-            $psr7Request = new \GuzzleHttp\Psr7\Request('GET', $this->url, $flatHeaders);
+            $psr7Request = new Psr7Request('GET', $this->url, $flatHeaders);
 
             if (!$cNegotiator->validateResponse($psr7Request, $psr7Response)) {
                 throw new \Exception('Invalid response');
