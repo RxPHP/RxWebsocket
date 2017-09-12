@@ -3,6 +3,15 @@
 - Updated react libraries (http/http-client)
 - Changed API to allow passing of `Connector`
 
+before
+```PHP
+$server = new \Rx\Websocket\Server('127.0.0.1', 9191);
+```
+after
+```PHP
+$server = new \Rx\Websocket\Server('tcp://127.0.0.1:9191');
+```
+
 # 1.0.2
 
 - End the request not the response when dispose is called ([b77c5118](https://github.com/RxPHP/RxWebsocket/commit/b77c5118c14d34e034b19383974337aec05d787a))
