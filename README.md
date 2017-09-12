@@ -43,7 +43,7 @@ $server->subscribe(function (\Rx\Websocket\MessageSubject $cs) {
 
 #### Server that dumps everything to the console
 ```php
-$server = new \Rx\Websocket\Server('127.0.0.1', 9191);
+$server = new \Rx\Websocket\Server('tcp://127.0.0.1:9191');
 
 $server->subscribe(function (\Rx\Websocket\MessageSubject $cs) {
     $cs->subscribe(function ($message) {

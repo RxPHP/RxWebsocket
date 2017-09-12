@@ -1,3 +1,8 @@
+# 2.0.0
+
+- Updated react libraries (http/http-client)
+- Changed API to allow passing of `Connector`
+
 # 1.0.2
 
 - End the request not the response when dispose is called ([b77c5118](https://github.com/RxPHP/RxWebsocket/commit/b77c5118c14d34e034b19383974337aec05d787a))
