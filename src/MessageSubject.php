@@ -10,6 +10,10 @@ use Ratchet\RFC6455\Messaging\FrameInterface;
 use Ratchet\RFC6455\Messaging\Message;
 use Ratchet\RFC6455\Messaging\MessageBuffer;
 use Ratchet\RFC6455\Messaging\MessageInterface;
+use Rx\Disposable\CallbackDisposable;
+use Rx\Disposable\CompositeDisposable;
+use Rx\DisposableInterface;
+use Rx\Exception\TimeoutException;
 use Rx\Observable;
 use Rx\ObserverInterface;
 use Rx\Subject\Subject;
@@ -32,11 +36,12 @@ class MessageSubject extends Subject
         bool $useMessageObject = false, 
         $subProtocol = "",
         RequestInterface $request,
-        ResponseInterface $response
+        ResponseInterface $response,
+        int $keepAlive = 60000
     ) {
         $this->request     = $request;
         $this->response    = $response;
-        $this->rawDataIn   = $rawDataIn;
+        $this->rawDataIn   = $rawDataIn->share();
         $this->rawDataOut  = $rawDataOut;
         $this->mask        = $mask;
         $this->subProtocol = $subProtocol;
@@ -46,7 +51,7 @@ class MessageSubject extends Subject
             function (MessageInterface $msg) use ($useMessageObject) {
                 parent::onNext($useMessageObject ? $msg : $msg->getPayload());
             },
-            function (FrameInterface $frame) use ($rawDataOut) {
+            function (FrameInterface $frame) {
                 switch ($frame->getOpcode()) {
                     case Frame::OP_PING:
                         $this->sendFrame(new Frame($frame->getPayload(), true, Frame::OP_PONG));
@@ -63,29 +68,65 @@ class MessageSubject extends Subject
                             parent::onError($exception);
                         }
 
-                        // complete output stream
-                        $rawDataOut->onCompleted();
+                        $this->rawDataOut->onCompleted();
 
-                        // signal subscribers that we are done here
-                        //parent::onCompleted();
+                        parent::onCompleted();
+
+                        $this->rawDataDisp->dispose();
                         return;
                 }
             },
             !$this->mask
         );
 
-        $this->rawDataDisp = $this->rawDataIn->subscribe(
-            function ($data) use ($messageBuffer) {
-                $messageBuffer->onData($data);
-            },
-            function (\Exception $exception) {
-                parent::onError($exception);
-            },
-            function () {
-                parent::onCompleted();
-            });
+        // keepAlive
+        $keepAliveObs = Observable::empty();
+        if ($keepAlive > 0) {
+            $keepAliveObs = $this->rawDataIn
+                ->startWith(0)
+                ->throttle($keepAlive / 2)
+                ->map(function () use ($keepAlive, $rawDataOut) {
+                    return Observable::timer($keepAlive)
+                        ->do(function () use ($rawDataOut) {
+                            $rawDataOut->onNext(new Frame('', true, Frame::OP_PING));
+                        })
+                        ->delay($keepAlive)
+                        ->do(function () use ($rawDataOut) {
+                            $rawDataOut->onError(new TimeoutException());
+                        });
+                })
+                ->switch()
+                ->flatMapTo(Observable::never());
+        }
+
+        $this->rawDataDisp = $this->rawDataIn
+            ->merge($keepAliveObs)
+            ->subscribe(
+                function ($data) use ($messageBuffer) {
+                    $messageBuffer->onData($data);
+                },
+                function (\Throwable $exception) {
+                    parent::onError($exception);
+                },
+                function () {
+                    parent::onCompleted();
+                }
+            );
 
         $this->subProtocol = $subProtocol;
+    }
+
+    protected function _subscribe(ObserverInterface $observer): DisposableInterface
+    {
+        $disposable = new CompositeDisposable([
+            parent::_subscribe($observer),
+            $this->rawDataDisp,
+            new CallbackDisposable(function () {
+                $this->rawDataOut->onCompleted();
+            })
+        ]);
+
+        return $disposable;
     }
 
     private function createCloseFrame(int $closeCode = Frame::CLOSE_NORMAL): Frame
