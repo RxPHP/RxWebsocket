@@ -102,15 +102,9 @@ class MessageSubject extends Subject
         $this->rawDataDisp = $this->rawDataIn
             ->merge($keepAliveObs)
             ->subscribe(
-                function ($data) use ($messageBuffer) {
-                    $messageBuffer->onData($data);
-                },
-                function (\Throwable $exception) {
-                    parent::onError($exception);
-                },
-                function () {
-                    parent::onCompleted();
-                }
+                [$messageBuffer, 'onData'],
+                [$this, 'parent::onError'],
+                [$this, 'parent::onCompleted']
             );
 
         $this->subProtocol = $subProtocol;
@@ -121,9 +115,7 @@ class MessageSubject extends Subject
         $disposable = new CompositeDisposable([
             parent::_subscribe($observer),
             $this->rawDataDisp,
-            new CallbackDisposable(function () {
-                $this->rawDataOut->onCompleted();
-            })
+            new CallbackDisposable([$this->rawDataOut, 'onCompleted'])
         ]);
 
         return $disposable;
