@@ -88,7 +88,7 @@ class MessageSubject extends Subject
                 ->map(function () use ($keepAlive, $rawDataOut) {
                     return Observable::timer($keepAlive)
                         ->do(function () use ($rawDataOut) {
-                            $rawDataOut->onNext(new Frame('', true, Frame::OP_PING));
+                            $rawDataOut->onNext((new Frame('', true, Frame::OP_PING))->getContents());
                         })
                         ->delay($keepAlive)
                         ->do(function () use ($rawDataOut) {

@@ -74,9 +74,7 @@ class MessageSubjectTest extends TestCase
         );
 
         $result = $this->scheduler->startWithCreate(function () use ($dataOut) {
-            return $dataOut->map(function (Frame $frame) {
-                return $frame->getContents();
-            });
+            return $dataOut;
         });
 
         $this->assertMessages([
@@ -107,9 +105,7 @@ class MessageSubjectTest extends TestCase
         );
 
         $result = $this->scheduler->startWithDispose(function () use ($dataOut) {
-            return $dataOut->map(function (Frame $frame) {
-                return $frame->getContents();
-            });
+            return $dataOut;
         }, 2000);
 
         $this->assertMessages([
@@ -141,9 +137,7 @@ class MessageSubjectTest extends TestCase
         );
 
         $result = $this->scheduler->startWithDispose(function () use ($dataOut) {
-            return $dataOut->map(function (Frame $frame) {
-                return $frame->getContents();
-            });
+            return $dataOut;
         }, 2000);
 
         $this->assertMessages([
