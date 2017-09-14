@@ -145,11 +145,6 @@ class MessageSubject extends Subject
         $this->rawDataOut->onNext($frame->getContents());
     }
 
-    public function getControlFrames(): Observable
-    {
-        return $this->controlFrames;
-    }
-
     // The ObserverInterface is commandeered by this class. We will use the parent:: stuff ourselves for notifying
     // subscribers
     public function onNext($value)
