@@ -15,12 +15,12 @@ $runReports = function () {
     $client->subscribe();
 };
 
-$runIndividualTest = function ($case) {
+$runIndividualTest = function ($case, $timeout = 60000) {
     echo "Running " . $case . "\n";
 
-    $casePath = "/runCase?case={$case}&agent=" . AGENT;
+    $casePath = "/runCase?case={$case}&agent=" . AGENT . "-" . $timeout;
 
-    $client = new \Rx\Websocket\Client("ws://127.0.0.1:9001" . $casePath, true);
+    $client = new \Rx\Websocket\Client("ws://127.0.0.1:9001" . $casePath, true, [], null, null, $timeout);
 
     $deferred = new \React\Promise\Deferred();
 
@@ -61,7 +61,11 @@ $runTests = function ($testCount) use ($runIndividualTest, $runReports) {
             $deferred->resolve();
             return;
         }
-        $runIndividualTest($i)->then($runNextCase);
+        $runIndividualTest($i, 60000)->then(function ($result) use ($runIndividualTest, &$i) {
+            // Use this if you want to run with no keepalive
+            //return $runIndividualTest($i, 0);
+            return $result;
+        })->then($runNextCase);
     };
 
     $runNextCase();

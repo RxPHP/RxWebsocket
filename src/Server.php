@@ -27,13 +27,15 @@ class Server extends Observable
     private $useMessageObject;
     private $subProtocols;
     private $loop;
+    private $keepAlive;
 
-    public function __construct(string $bindAddressOrPort, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null)
+    public function __construct(string $bindAddressOrPort, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, int $keepAlive = 60000)
     {
         $this->bindAddress      = $bindAddressOrPort;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
         $this->loop             = $loop ?: \EventLoop\getLoop();
+        $this->keepAlive        = $keepAlive;
     }
 
     public function _subscribe(ObserverInterface $observer): DisposableInterface
@@ -124,7 +126,8 @@ class Server extends Observable
                 $this->useMessageObject,
                 $subProtocol,
                 $psrRequest,
-                $negotiatorResponse
+                $negotiatorResponse,
+                $this->keepAlive
             );
 
             $observer->onNext($messageSubject);

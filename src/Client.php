@@ -25,8 +25,9 @@ class Client extends Observable
     private $subProtocols;
     private $loop;
     private $connector;
+    private $keepAlive;
 
-    public function __construct(string $url, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, ConnectorInterface $connector = null)
+    public function __construct(string $url, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, ConnectorInterface $connector = null, int $keepAlive = 60000)
     {
         $parsedUrl = parse_url($url);
         if (!isset($parsedUrl['scheme']) || !in_array($parsedUrl['scheme'], ['wss', 'ws'])) {
@@ -46,6 +47,7 @@ class Client extends Observable
         $this->subProtocols     = $subProtocols;
         $this->loop             = $loop ?: \EventLoop\getLoop();
         $this->connector        = $connector;
+        $this->keepAlive        = $keepAlive;
     }
 
     public function _subscribe(ObserverInterface $clientObserver): DisposableInterface
@@ -137,7 +139,8 @@ class Client extends Observable
                 $this->useMessageObject,
                 $subprotoHeader,
                 $nRequest,
-                $psr7Response
+                $psr7Response,
+                $this->keepAlive
             ));
         });
 
