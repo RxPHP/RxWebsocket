@@ -80,7 +80,8 @@ class Client extends Observable
 
         $request->on('response', function (Response $response, Request $request) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
             if ($response->getCode() !== 101) {
-                throw new \Exception('Unexpected response code ' . $response->getCode());
+                $clientObserver->onError(new \Exception('Unexpected response code ' . $response->getCode()));
+                return;
             }
 
             $psr7Response = new Psr7Response(
@@ -93,7 +94,8 @@ class Client extends Observable
             $psr7Request = new Psr7Request('GET', $this->url, $flatHeaders);
 
             if (!$cNegotiator->validateResponse($psr7Request, $psr7Response)) {
-                throw new \Exception('Invalid response');
+                $clientObserver->onError(new \Exception('Invalid response'));
+                return;
             }
 
             $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol');
