@@ -1,3 +1,15 @@
+# 2.1.2
+
+- Update deps
+
+# 2.1.1
+
+- Emit socket errors instead of throwing
+
+# 2.1.0
+
+- Added websocket ping keepalive
+
 # 2.0.0
 
 - Updated react libraries (http/http-client)
