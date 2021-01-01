@@ -7,7 +7,7 @@ use Rx\Scheduler;
 
 class TestCase extends FunctionalTestCase
 {
-    public function setup()
+    public function setup(): void
     {
         parent::setup();
 

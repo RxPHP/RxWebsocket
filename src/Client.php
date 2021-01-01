@@ -5,11 +5,13 @@ namespace Rx\Websocket;
 use GuzzleHttp\Psr7\Request as Psr7Request;
 use GuzzleHttp\Psr7\Response as Psr7Response;
 use GuzzleHttp\Psr7\Uri;
+use Psr\Http\Message\ResponseInterface;
 use Ratchet\RFC6455\Handshake\ClientNegotiator;
 use React\EventLoop\LoopInterface;
-use React\HttpClient\Client as HttpClient;
-use React\HttpClient\Request;
-use React\HttpClient\Response;
+use React\Http\Client\Client as HttpClient;
+use React\Http\Client\Request;
+use React\Http\Message\Response;
+use React\Socket\ConnectionInterface;
 use React\Socket\ConnectorInterface;
 use Rx\Disposable\CallbackDisposable;
 use Rx\DisposableInterface;
@@ -78,17 +80,17 @@ class Client extends Observable
             $clientObserver->onError($error);
         });
 
-        $request->on('response', function (Response $response, Request $request) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
-            if ($response->getCode() !== 101) {
-                $clientObserver->onError(new \Exception('Unexpected response code ' . $response->getCode()));
+        $request->on('response', function (ResponseInterface $response, ConnectionInterface $request) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
+            if ($response->getStatusCode() !== 101) {
+                $clientObserver->onError(new \Exception('Unexpected response code ' . $response->getStatusCode()));
                 return;
             }
 
             $psr7Response = new Psr7Response(
-                $response->getCode(),
+                $response->getStatusCode(),
                 $response->getHeaders(),
                 null,
-                $response->getVersion()
+                $response->getProtocolVersion()
             );
 
             $psr7Request = new Psr7Request('GET', $this->url, $flatHeaders);
@@ -103,19 +105,19 @@ class Client extends Observable
             $clientObserver->onNext(new MessageSubject(
                 new AnonymousObservable(function (ObserverInterface $observer) use ($response, $request, $clientObserver) {
 
-                    $response->on('data', function ($data) use ($observer) {
+                    $request->on('data', function ($data) use ($observer) {
                         $observer->onNext($data);
                     });
 
-                    $response->on('error', function ($e) use ($observer) {
+                    $request->on('error', function ($e) use ($observer) {
                         $observer->onError($e);
                     });
 
-                    $response->on('close', function () use ($observer) {
+                    $request->on('close', function () use ($observer) {
                         $observer->onCompleted();
                     });
 
-                    $response->on('end', function () use ($observer, $clientObserver) {
+                    $request->on('end', function () use ($observer, $clientObserver) {
                         $observer->onCompleted();
 
                         // complete the parent observer - we only do 1 connection
