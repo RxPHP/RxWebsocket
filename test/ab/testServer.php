@@ -11,7 +11,7 @@ if ($argc > 1 && is_numeric($argv[1])) {
     $timerObservable = Observable::timer(1000 * $argv[1]);
 }
 
-$server = new \Rx\Websocket\Server("tcp://127.0.0.1:9001", true);
+$server = new \Rx\Websocket\Server("tcp://0.0.0.0:9001", true);
 
 $server
     ->takeUntil($timerObservable)

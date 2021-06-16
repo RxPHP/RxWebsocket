@@ -12,7 +12,26 @@ $runReports = function () {
     $reportUrl = "ws://127.0.0.1:9001/updateReports?agent=" . AGENT . "&shutdownOnComplete=true";
     $client    = new \Rx\Websocket\Client($reportUrl);
 
-    $client->subscribe();
+    $client->subscribe(
+        function (\Rx\Websocket\MessageSubject $messages) {
+            echo "Report runner connected.\n";
+            $messages->subscribe(new \Rx\Observer\CallbackObserver(
+                                     function ($x) use ($messages) {
+                                         echo "Message received by report runner connection: " . $x . "\n";;
+                                     },
+                                     [$messages, "onError"],
+                                     [$messages, "onCompleted"]
+                                 ));
+        },
+        function (Throwable $error) {
+            echo "Error on report runner connection:" . $error->getMessage() . "\n";
+            echo "Seeing an error here might be normal. Network trace shows that AB fuzzingserver\n";
+            echo "disconnects without sending an HTTP response.\n";
+        },
+        function () {
+            echo "Report runner connection completed.\n";
+        }
+    );
 };
 
 $runIndividualTest = function ($case, $timeout = 60000) {

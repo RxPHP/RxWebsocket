@@ -1,3 +1,11 @@
+# 2.1.4
+
+- Allow Ratchet/RFC6455 0.3
+
+# 2.1.3
+
+- Forward compatibility with voryx/event-loop 3.0 while supporting 2.0
+
 # 2.1.2
 
 - Update deps
