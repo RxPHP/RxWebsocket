@@ -2,23 +2,24 @@
 
 namespace Rx\Websocket;
 
-use GuzzleHttp\Psr7\Request;
 use Psr\Http\Message\ServerRequestInterface;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use React\EventLoop\LoopInterface;
-use React\Http\Response;
-use React\Http\Server as HttpServer;
-use React\Socket\Server as SocketServer;
+use React\Http\Message\Response;
+use React\Http\Middleware\StreamingRequestMiddleware as StreamingRequestMiddlewareAlias;
+use React\Http\HttpServer;
+use React\Socket\SocketServer;
 use React\Stream\CompositeStream;
-use React\Stream\ReadableStreamInterface;
 use React\Stream\ThroughStream;
 use Rx\Disposable\CallbackDisposable;
+use Rx\Disposable\EmptyDisposable;
 use Rx\DisposableInterface;
 use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
+use function RingCentral\Psr7\str;
 
 class Server extends Observable
 {
@@ -40,100 +41,94 @@ class Server extends Observable
 
     public function _subscribe(ObserverInterface $observer): DisposableInterface
     {
-        $socket = new SocketServer($this->bindAddress, $this->loop);
+        $socket = new SocketServer($this->bindAddress, [], $this->loop);
 
         $negotiator = new ServerNegotiator(new RequestVerifier());
         if (!empty($this->subProtocols)) {
             $negotiator->setSupportedSubProtocols($this->subProtocols);
         }
 
-        $http = new HttpServer(function (ServerRequestInterface $request) use ($negotiator, $observer) {
-            $uri = $request->getUri();
+        $http = new HttpServer(
+            $this->loop,
+            new StreamingRequestMiddlewareAlias(),
+            function (ServerRequestInterface $request) use ($negotiator, $observer) {
+                // cram the remote address into the header in our own X- header so
+                // the user will have access to it
+                $request = $request->withAddedHeader('X-RxWebsocket-Remote-Address', $request->getServerParams()['REMOTE_ADDR'] ?? '');
 
-            $psrRequest = new Request(
-                $request->getMethod(),
-                $uri,
-                $request->getHeaders()
-            );
+                $negotiatorResponse = $negotiator->handshake($request);
 
-            // cram the remote address into the header in our own X- header so
-            // the user will have access to it
-            $psrRequest = $psrRequest->withAddedHeader('X-RxWebsocket-Remote-Address', $request->getServerParams()['REMOTE_ADDR'] ?? '');
+                $requestStream  = new ThroughStream();
+                $responseStream = new ThroughStream();
 
-            $negotiatorResponse = $negotiator->handshake($psrRequest);
+                $response = new Response(
+                    $negotiatorResponse->getStatusCode(),
+                    array_merge(
+                        $negotiatorResponse->getHeaders()
+                    ),
+                    new CompositeStream(
+                        $responseStream,
+                        $requestStream
+                    )
+                );
 
-            /** @var ReadableStreamInterface $requestStream */
-            $requestStream  = new ThroughStream();
-            $responseStream = new ThroughStream();
+                if ($negotiatorResponse->getStatusCode() !== 101) {
+                    $responseStream->end(str($negotiatorResponse));
+                    return new EmptyDisposable();
+                }
 
-            $response = new Response(
-                $negotiatorResponse->getStatusCode(),
-                array_merge(
-                    $negotiatorResponse->getHeaders()
-                ),
-                new CompositeStream(
-                    $responseStream,
-                    $requestStream
-                )
-            );
+                $subProtocol = "";
+                if (count($negotiatorResponse->getHeader('Sec-WebSocket-Protocol')) > 0) {
+                    $subProtocol = $negotiatorResponse->getHeader('Sec-WebSocket-Protocol')[0];
+                }
 
+                $messageSubject = new MessageSubject(
+                    new AnonymousObservable(
+                        function (ObserverInterface $observer) use ($requestStream) {
+                            $requestStream->on('data', function ($data) use ($observer) {
+                                $observer->onNext($data);
+                            });
+                            $requestStream->on('error', function ($error) use ($observer) {
+                                $observer->onError($error);
+                            });
+                            $requestStream->on('close', function () use ($observer) {
+                                $observer->onCompleted();
+                            });
+                            $requestStream->on('end', function () use ($observer) {
+                                $observer->onCompleted();
+                            });
 
-            if ($negotiatorResponse->getStatusCode() !== 101) {
-                $responseStream->end();
-                return;
+                            return new CallbackDisposable(
+                                function () use ($requestStream) {
+                                    $requestStream->close();
+                                }
+                            );
+                        }
+                    ),
+                    new CallbackObserver(
+                        function ($x) use ($responseStream) {
+                            $responseStream->write($x);
+                        },
+                        function ($error) use ($responseStream) {
+                            $responseStream->close();
+                        },
+                        function () use ($responseStream) {
+                            $responseStream->end();
+                        }
+                    ),
+                    false,
+                    $this->useMessageObject,
+                    $subProtocol,
+                    $request,
+                    $negotiatorResponse,
+                    $this->keepAlive
+                );
+
+                $observer->onNext($messageSubject);
+
+                return $response;
             }
-
-            $subProtocol = "";
-            if (count($negotiatorResponse->getHeader('Sec-WebSocket-Protocol')) > 0) {
-                $subProtocol = $negotiatorResponse->getHeader('Sec-WebSocket-Protocol')[0];
-            }
-
-            $messageSubject = new MessageSubject(
-                new AnonymousObservable(
-                    function (ObserverInterface $observer) use ($requestStream) {
-                        $requestStream->on('data', function ($data) use ($observer) {
-                            $observer->onNext($data);
-                        });
-                        $requestStream->on('error', function ($error) use ($observer) {
-                            $observer->onError($error);
-                        });
-                        $requestStream->on('close', function () use ($observer) {
-                            $observer->onCompleted();
-                        });
-                        $requestStream->on('end', function () use ($observer) {
-                            $observer->onCompleted();
-                        });
-
-                        return new CallbackDisposable(
-                            function () use ($requestStream) {
-                                $requestStream->close();
-                            }
-                        );
-                    }
-                ),
-                new CallbackObserver(
-                    function ($x) use ($responseStream) {
-                        $responseStream->write($x);
-                    },
-                    function ($error) use ($responseStream) {
-                        $responseStream->close();
-                    },
-                    function () use ($responseStream) {
-                        $responseStream->end();
-                    }
-                ),
-                false,
-                $this->useMessageObject,
-                $subProtocol,
-                $psrRequest,
-                $negotiatorResponse,
-                $this->keepAlive
-            );
-
-            $observer->onNext($messageSubject);
-
-            return $response;
-        });
+        );
 
         $http->listen($socket);
 

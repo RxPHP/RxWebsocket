@@ -4,7 +4,7 @@ namespace Rx\Websocket\Test;
 
 use React\EventLoop\Factory;
 
-class ClientTest extends \PHPUnit_Framework_TestCase
+class ClientTest extends \PHPUnit\Framework\TestCase
 {
     public function testErrorBeforeRequest()
     {

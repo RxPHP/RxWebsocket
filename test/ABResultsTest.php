@@ -2,7 +2,7 @@
 
 namespace Rx\Websocket\Test;
 
-class ABResultsTest extends \PHPUnit_Framework_TestCase
+class ABResultsTest extends \PHPUnit\Framework\TestCase
 {
     private function verifyAutobahnResults($fileName)
     {
