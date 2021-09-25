@@ -4,7 +4,7 @@
 
    "servers": [
                 {"agent": "RxWebsocketServer/0.0.0",
-                 "url": "ws://host.docker.internal:9001",
+                 "url": "ws://host.docker.internal:9002",
                  "options": {"version": 18}}
               ],
    "cases": ["*"],
