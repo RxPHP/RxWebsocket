@@ -1,3 +1,7 @@
+# 2.1.5
+
+- Bump react/http to version ^1
+
 # 2.1.4
 
 - Allow Ratchet/RFC6455 0.3
