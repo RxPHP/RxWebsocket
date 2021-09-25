@@ -12,7 +12,14 @@ $runReports = function () {
     $reportUrl = "ws://127.0.0.1:9001/updateReports?agent=" . AGENT . "&shutdownOnComplete=true";
     $client    = new \Rx\Websocket\Client($reportUrl);
 
-    $client->subscribe();
+    $client->subscribe(
+        function () {},
+        function (\Throwable $e) {
+            // wstest is mean and hangs up on you without even sending a response
+            // this is empty so we don't see HttpClient's complaints about that
+        },
+        function () {}
+    );
 };
 
 $runIndividualTest = function ($case, $timeout = 60000) {
@@ -83,6 +90,7 @@ $client
     ->subscribe(
         $runTests,
         function ($error) {
-            echo $error . "\n";
-        }
+            echo "Err: " . $error . "\n";
+        },
+        function () { printf("completed.\n"); }
     );

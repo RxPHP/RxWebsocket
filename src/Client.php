@@ -9,8 +9,6 @@ use Psr\Http\Message\ResponseInterface;
 use Ratchet\RFC6455\Handshake\ClientNegotiator;
 use React\EventLoop\LoopInterface;
 use React\Http\Client\Client as HttpClient;
-use React\Http\Client\Request;
-use React\Http\Message\Response;
 use React\Socket\ConnectionInterface;
 use React\Socket\ConnectorInterface;
 use Rx\Disposable\CallbackDisposable;
@@ -113,8 +111,11 @@ class Client extends Observable
                         $observer->onError($e);
                     });
 
-                    $request->on('close', function () use ($observer) {
+                    $request->on('close', function () use ($observer, $clientObserver) {
                         $observer->onCompleted();
+
+                        // complete the parent observer - we only do 1 connection
+                        $clientObserver->onCompleted();
                     });
 
                     $request->on('end', function () use ($observer, $clientObserver) {

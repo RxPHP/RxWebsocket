@@ -2,24 +2,24 @@
 
 namespace Rx\Websocket;
 
-use GuzzleHttp\Psr7\Request;
 use Psr\Http\Message\ServerRequestInterface;
 use Ratchet\RFC6455\Handshake\RequestVerifier;
 use Ratchet\RFC6455\Handshake\ServerNegotiator;
 use React\EventLoop\LoopInterface;
 use React\Http\Message\Response;
-use React\Http\Middleware\StreamingRequestMiddleware;
-use React\Http\Server as HttpServer;
-use React\Socket\Server as SocketServer;
+use React\Http\Middleware\StreamingRequestMiddleware as StreamingRequestMiddlewareAlias;
+use React\Http\HttpServer;
+use React\Socket\SocketServer;
 use React\Stream\CompositeStream;
-use React\Stream\ReadableStreamInterface;
 use React\Stream\ThroughStream;
 use Rx\Disposable\CallbackDisposable;
+use Rx\Disposable\EmptyDisposable;
 use Rx\DisposableInterface;
 use Rx\Observable;
 use Rx\Observable\AnonymousObservable;
 use Rx\Observer\CallbackObserver;
 use Rx\ObserverInterface;
+use function RingCentral\Psr7\str;
 
 class Server extends Observable
 {
@@ -41,7 +41,7 @@ class Server extends Observable
 
     public function _subscribe(ObserverInterface $observer): DisposableInterface
     {
-        $socket = new SocketServer($this->bindAddress, $this->loop);
+        $socket = new SocketServer($this->bindAddress, [], $this->loop);
 
         $negotiator = new ServerNegotiator(new RequestVerifier());
         if (!empty($this->subProtocols)) {
@@ -50,7 +50,7 @@ class Server extends Observable
 
         $http = new HttpServer(
             $this->loop,
-            new StreamingRequestMiddleware(),
+            new StreamingRequestMiddlewareAlias(),
             function (ServerRequestInterface $request) use ($negotiator, $observer) {
                 // cram the remote address into the header in our own X- header so
                 // the user will have access to it
@@ -58,7 +58,6 @@ class Server extends Observable
 
                 $negotiatorResponse = $negotiator->handshake($request);
 
-                /** @var ReadableStreamInterface $requestStream */
                 $requestStream  = new ThroughStream();
                 $responseStream = new ThroughStream();
 
@@ -74,8 +73,8 @@ class Server extends Observable
                 );
 
                 if ($negotiatorResponse->getStatusCode() !== 101) {
-                    $responseStream->close();
-                    return;
+                    $responseStream->end(str($negotiatorResponse));
+                    return new EmptyDisposable();
                 }
 
                 $subProtocol = "";
@@ -87,7 +86,6 @@ class Server extends Observable
                     new AnonymousObservable(
                         function (ObserverInterface $observer) use ($requestStream) {
                             $requestStream->on('data', function ($data) use ($observer) {
-                                var_export($data);
                                 $observer->onNext($data);
                             });
                             $requestStream->on('error', function ($error) use ($observer) {
@@ -115,7 +113,7 @@ class Server extends Observable
                             $responseStream->close();
                         },
                         function () use ($responseStream) {
-                            $responseStream->close();
+                            $responseStream->end();
                         }
                     ),
                     false,
