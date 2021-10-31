@@ -1,3 +1,7 @@
+# 2.1.6
+
+- Remove optional before required parameters to MessageSubject
+
 # 2.1.5
 
 - Bump react/http to version ^1
