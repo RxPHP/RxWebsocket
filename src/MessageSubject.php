@@ -32,9 +32,9 @@ class MessageSubject extends Subject
     public function __construct(
         Observable $rawDataIn,
         ObserverInterface $rawDataOut,
-        bool $mask = false,
-        bool $useMessageObject = false, 
-        $subProtocol = "",
+        bool $mask,
+        bool $useMessageObject,
+        $subProtocol,
         RequestInterface $request,
         ResponseInterface $response,
         int $keepAlive = 60000
