@@ -26,8 +26,9 @@ class Client extends Observable
     private $loop;
     private $connector;
     private $keepAlive;
+    private $headers;
 
-    public function __construct(string $url, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, ConnectorInterface $connector = null, int $keepAlive = 60000)
+    public function __construct(string $url, bool $useMessageObject = false, array $subProtocols = [], LoopInterface $loop = null, ConnectorInterface $connector = null, int $keepAlive = 60000, array $headers = [])
     {
         $parsedUrl = parse_url($url);
         if (!isset($parsedUrl['scheme']) || !in_array($parsedUrl['scheme'], ['wss', 'ws'])) {
@@ -48,6 +49,7 @@ class Client extends Observable
         $this->loop             = $loop ?: \EventLoop\getLoop();
         $this->connector        = $connector;
         $this->keepAlive        = $keepAlive;
+        $this->headers          = $headers;
     }
 
     public function _subscribe(ObserverInterface $clientObserver): DisposableInterface
@@ -70,6 +72,10 @@ class Client extends Observable
         $flatHeaders = [];
         foreach ($headers as $k => $v) {
             $flatHeaders[$k] = $v[0];
+        }
+
+        foreach ($this->headers as $k => $v) {
+            $flatHeaders[$k] = $v;
         }
 
         $request = $client->request('GET', $this->url, $flatHeaders, '1.1');
