@@ -1,3 +1,11 @@
+# 2.1.8
+
+- Limit react/http dependencies
+
+# 2.1.7
+
+- Allow http headers to be set on client
+
 # 2.1.6
 
 - Remove optional before required parameters to MessageSubject
