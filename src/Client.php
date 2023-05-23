@@ -8,9 +8,11 @@ use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\ResponseInterface;
 use Ratchet\RFC6455\Handshake\ClientNegotiator;
 use React\EventLoop\LoopInterface;
+use React\Http\Browser;
 use React\Http\Client\Client as HttpClient;
 use React\Socket\ConnectionInterface;
 use React\Socket\ConnectorInterface;
+use React\Stream\ThroughStream;
 use Rx\Disposable\CallbackDisposable;
 use Rx\DisposableInterface;
 use Rx\Observable;
@@ -23,8 +25,7 @@ class Client extends Observable
     protected $url;
     private $useMessageObject;
     private $subProtocols;
-    private $loop;
-    private $connector;
+    private $browser;
     private $keepAlive;
     private $headers;
 
@@ -46,16 +47,13 @@ class Client extends Observable
         $this->url              = $url;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
-        $this->loop             = $loop ?: \EventLoop\getLoop();
-        $this->connector        = $connector;
+        $this->browser          = new Browser($connector, $loop);
         $this->keepAlive        = $keepAlive;
         $this->headers          = $headers;
     }
 
     public function _subscribe(ObserverInterface $clientObserver): DisposableInterface
     {
-        $client = new HttpClient($this->loop, $this->connector);
-
         $cNegotiator = new ClientNegotiator();
 
         /** @var Psr7Request $nRequest */
@@ -78,88 +76,88 @@ class Client extends Observable
             $flatHeaders[$k] = $v;
         }
 
-        $request = $client->request('GET', $this->url, $flatHeaders, '1.1');
+        $writeStream = new ThroughStream();
+        $this->browser->requestStreaming('GET', $this->url, $flatHeaders, $writeStream)->then(
+            function (ResponseInterface $response) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
+                if ($response->getStatusCode() !== 101) {
+                    $clientObserver->onError(new \Exception('Unexpected response code ' . $response->getStatusCode()));
+                    return;
+                }
 
-        $request->on('error', function ($error) use ($clientObserver) {
-            $clientObserver->onError($error);
-        });
+                $psr7Response = new Psr7Response(
+                    $response->getStatusCode(),
+                    $response->getHeaders(),
+                    null,
+                    $response->getProtocolVersion()
+                );
 
-        $request->on('response', function (ResponseInterface $response, ConnectionInterface $request) use ($flatHeaders, $cNegotiator, $nRequest, $clientObserver) {
-            if ($response->getStatusCode() !== 101) {
-                $clientObserver->onError(new \Exception('Unexpected response code ' . $response->getStatusCode()));
-                return;
+                $psr7Request = new Psr7Request('GET', $this->url, $flatHeaders);
+
+                if (!$cNegotiator->validateResponse($psr7Request, $psr7Response)) {
+                    $clientObserver->onError(new \Exception('Invalid response'));
+                    return;
+                }
+
+                $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol');
+
+                $clientObserver->onNext(new MessageSubject(
+                    new AnonymousObservable(function (ObserverInterface $observer) use ($response, $writeStream, $clientObserver) {
+
+                        $writeStream->on('data', function ($data) use ($observer) {
+                            $observer->onNext($data);
+                        });
+
+                        $writeStream->on('error', function ($e) use ($observer) {
+                            $observer->onError($e);
+                        });
+
+                        $writeStream->on('close', function () use ($observer, $clientObserver) {
+                            $observer->onCompleted();
+
+                            // complete the parent observer - we only do 1 connection
+                            $clientObserver->onCompleted();
+                        });
+
+                        $writeStream->on('end', function () use ($observer, $clientObserver) {
+                            $observer->onCompleted();
+
+                            // complete the parent observer - we only do 1 connection
+                            $clientObserver->onCompleted();
+                        });
+
+                        return new CallbackDisposable(function () use ($writeStream) {
+                            $writeStream->end();
+                        });
+                    }),
+                    new CallbackObserver(
+                        function ($x) use ($writeStream) {
+                            $writeStream->write($x);
+                        },
+                        function ($e) use ($writeStream) {
+                            $writeStream->close();
+                        },
+                        function () use ($writeStream) {
+                            $writeStream->end();
+                        }
+                    ),
+                    true,
+                    $this->useMessageObject,
+                    $subprotoHeader,
+                    $nRequest,
+                    $psr7Response,
+                    $this->keepAlive
+                ));
+            },
+            static function ($error) use ($clientObserver) {
+                $clientObserver->onError($error);
             }
-
-            $psr7Response = new Psr7Response(
-                $response->getStatusCode(),
-                $response->getHeaders(),
-                null,
-                $response->getProtocolVersion()
-            );
-
-            $psr7Request = new Psr7Request('GET', $this->url, $flatHeaders);
-
-            if (!$cNegotiator->validateResponse($psr7Request, $psr7Response)) {
-                $clientObserver->onError(new \Exception('Invalid response'));
-                return;
-            }
-
-            $subprotoHeader = $psr7Response->getHeader('Sec-WebSocket-Protocol');
-
-            $clientObserver->onNext(new MessageSubject(
-                new AnonymousObservable(function (ObserverInterface $observer) use ($response, $request, $clientObserver) {
-
-                    $request->on('data', function ($data) use ($observer) {
-                        $observer->onNext($data);
-                    });
-
-                    $request->on('error', function ($e) use ($observer) {
-                        $observer->onError($e);
-                    });
-
-                    $request->on('close', function () use ($observer, $clientObserver) {
-                        $observer->onCompleted();
-
-                        // complete the parent observer - we only do 1 connection
-                        $clientObserver->onCompleted();
-                    });
-
-                    $request->on('end', function () use ($observer, $clientObserver) {
-                        $observer->onCompleted();
-
-                        // complete the parent observer - we only do 1 connection
-                        $clientObserver->onCompleted();
-                    });
-
-                    return new CallbackDisposable(function () use ($request) {
-                        $request->end();
-                    });
-                }),
-                new CallbackObserver(
-                    function ($x) use ($request) {
-                        $request->write($x);
-                    },
-                    function ($e) use ($request) {
-                        $request->close();
-                    },
-                    function () use ($request) {
-                        $request->end();
-                    }
-                ),
-                true,
-                $this->useMessageObject,
-                $subprotoHeader,
-                $nRequest,
-                $psr7Response,
-                $this->keepAlive
-            ));
-        });
+        );
 
         // empty write to force connection and header send
-        $request->write('');
+        $writeStream->write('');
 
-        return new CallbackDisposable(function () use ($request) {
-            $request->close();
+        return new CallbackDisposable(function () use ($writeStream) {
+            $writeStream->close();
         });
     }
 }
