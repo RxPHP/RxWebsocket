@@ -107,8 +107,8 @@ class MessageSubject extends Subject
             ->merge($keepAliveObs)
             ->subscribe(
                 [$messageBuffer, 'onData'],
-                [$this, 'parent::onError'],
-                [$this, 'parent::onCompleted']
+                parent::onError(...),
+                parent::onCompleted(...)
             );
 
         $this->subProtocol = $subProtocol;
