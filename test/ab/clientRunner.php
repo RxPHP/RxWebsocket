@@ -4,7 +4,7 @@ require_once __DIR__ . '/../bootstrap.php';
 
 const AGENT = "Websocket/0.0.0";
 
-echo "Using " . get_class(\EventLoop\getLoop()) . "\n";
+echo "Using " . get_class(\React\EventLoop\Loop::get()) . "\n";
 
 $runReports = function () {
     echo "Generating report.\n";
@@ -60,7 +60,7 @@ $runIndividualTest = function ($case, $timeout = 60000) {
         },
         function () use ($case, $deferred) {
             echo "Finished " . $case . "\n";
-            $deferred->resolve();
+            $deferred->resolve(null);
         }
     );
 
@@ -77,7 +77,7 @@ $runTests = function ($testCount) use ($runIndividualTest, $runReports) {
     $runNextCase = function () use (&$i, &$runNextCase, $testCount, $deferred, $runIndividualTest) {
         $i++;
         if ($i > $testCount) {
-            $deferred->resolve();
+            $deferred->resolve(null);
             return;
         }
         $runIndividualTest($i, 60000)->then(function ($result) use ($runIndividualTest, &$i) {
