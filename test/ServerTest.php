@@ -2,6 +2,7 @@
 
 namespace Rx\Websocket\Test;
 
+use React\EventLoop\Loop;
 use function EventLoop\addTimer;
 use function EventLoop\getLoop;
 use Rx\Websocket\Client;
@@ -16,11 +17,11 @@ class ServerTest extends TestCase
 
         $serverDisp = $server->subscribe();
 
-        addTimer(0.1, function () use ($serverDisp) {
+        Loop::addTimer(0.1, function () use ($serverDisp) {
             $serverDisp->dispose();
         });
 
-        getLoop()->run();
+        Loop::get()->run();
 
         // we are making sure it is not hanging - if it gets here it worked
         $this->assertTrue(true);
@@ -38,7 +39,7 @@ class ServerTest extends TestCase
 
         $value = null;
 
-        addTimer(0.1, function () use (&$value) {
+        Loop::addTimer(0.1, function () use (&$value) {
             $client = new Client('ws://127.0.0.1:1236');
             $client
                 ->flatMap(function (MessageSubject $ms) {
@@ -52,7 +53,7 @@ class ServerTest extends TestCase
                 });
         });
 
-        getLoop()->run();
+        Loop::get()->run();
 
         $this->assertEquals('olleH', $value);
     }
