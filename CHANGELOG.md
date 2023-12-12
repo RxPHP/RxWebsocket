@@ -1,3 +1,8 @@
+# 2.2.0
+
+- Changes for PHP 8.3
+- Test newer versions of PHP
+
 # 2.1.8
 
 - Limit react/http dependencies
