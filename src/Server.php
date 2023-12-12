@@ -35,7 +35,7 @@ class Server extends Observable
         $this->bindAddress      = $bindAddressOrPort;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
-        $this->loop             = $loop ?: \EventLoop\getLoop();
+        $this->loop             = $loop ?: \React\EventLoop\Loop::get();
         $this->keepAlive        = $keepAlive;
     }
 

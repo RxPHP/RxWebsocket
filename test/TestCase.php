@@ -25,7 +25,7 @@ class TestCase extends FunctionalTestCase
 
         foreach ($props as $prop) {
             $prop->setAccessible(true);
-            $prop->setValue(null);
+            $prop->setValue($prop, null);
             $prop->setAccessible(false);
         }
     }

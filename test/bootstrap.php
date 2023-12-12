@@ -16,3 +16,5 @@ foreach ($files as $file) {
         break;
     }
 }
+
+Rx\Scheduler::setDefaultFactory(function () { return new \Rx\Scheduler\EventLoopScheduler(\React\EventLoop\Loop::get()); });

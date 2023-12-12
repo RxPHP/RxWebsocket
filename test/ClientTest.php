@@ -38,7 +38,7 @@ class ClientTest extends \PHPUnit\Framework\TestCase
             ->getMock();
         $connection
             ->method('write')
-            ->with($this->callback(function($data) use (&$writtenData) { $writtenData .= $data; }))
+            ->with($this->callback(function($data) use (&$writtenData) { $writtenData .= $data; return true;}))
             ->willReturn(true);
 
 

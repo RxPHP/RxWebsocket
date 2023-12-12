@@ -4,7 +4,7 @@ use Rx\Observable;
 
 require_once __DIR__ . '/../bootstrap.php';
 
-$timerObservable = Observable::emptyObservable();
+$timerObservable = Observable::empty();
 
 if ($argc > 1 && is_numeric($argv[1])) {
     echo "Setting test server to stop in " . $argv[1] . " seconds.\n";

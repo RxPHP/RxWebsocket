@@ -46,7 +46,7 @@ class Client extends Observable
         $this->url              = $url;
         $this->useMessageObject = $useMessageObject;
         $this->subProtocols     = $subProtocols;
-        $this->loop             = $loop ?: \EventLoop\getLoop();
+        $this->loop             = $loop ?: \React\EventLoop\Loop::get();
         $this->connector        = $connector;
         $this->keepAlive        = $keepAlive;
         $this->headers          = $headers;
