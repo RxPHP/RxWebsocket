@@ -14,6 +14,7 @@ use Rx\Disposable\CallbackDisposable;
 use Rx\Disposable\CompositeDisposable;
 use Rx\DisposableInterface;
 use Rx\Exception\TimeoutException;
+use Rx\Notification\OnNextNotification;
 use Rx\Observable;
 use Rx\ObserverInterface;
 use Rx\Subject\Subject;
@@ -100,7 +101,12 @@ class MessageSubject extends Subject
                         });
                 })
                 ->switch()
-                ->flatMapTo(Observable::never());
+                ->flatMapTo(Observable::never())
+                // This detects close or error notifications from the raw data input and stops the keepalive
+                ->takeUntil($this->rawDataIn
+                                ->materialize()
+                                ->filter(function($notification) { return ! $notification instanceof OnNextNotification; })
+                                ->take(1));
         }
 
         $this->rawDataDisp = $this->rawDataIn
@@ -108,7 +114,8 @@ class MessageSubject extends Subject
             ->subscribe(
                 [$messageBuffer, 'onData'],
                 function (\Throwable $e) { parent::onError($e); },
-                function () { parent::onCompleted(); }
+                // onCompleted needs to send an error. If a close frame comes in, this should be disposed already
+                function () { parent::onError(new WebsocketErrorException(Frame::CLOSE_ABNORMAL)); }
             );
 
         $this->subProtocol = $subProtocol;
