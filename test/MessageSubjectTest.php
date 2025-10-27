@@ -183,4 +183,37 @@ class MessageSubjectTest extends TestCase
             onCompleted(300)
         ], $dataOut->getMessages());
     }
+
+    public function testMessageSubjectErrorsIfDataInStreamEndsClosesOrErrors() {
+        $dataIn = $this->createHotObservable([
+            onNext(201, (new Frame('', true, Frame::OP_TEXT))->getContents()),
+            onCompleted(205)
+        ]);
+
+        $dataOut = new MockObserver($this->scheduler);
+
+        $ms = new MessageSubject(
+            $dataIn,
+            $dataOut,
+            true,
+            false,
+            '',
+            new Request('GET', '/ws'),
+            new Response(),
+            300
+        );
+
+        $result = $this->scheduler->startWithDispose(function () use ($ms) {
+            return $ms;
+        }, 500);
+
+        $this->assertMessages([
+            onNext(201, ''),
+            onError(205, new WebsocketErrorException(Frame::CLOSE_ABNORMAL))
+        ], $result->getMessages());
+
+        $this->assertSubscriptions([
+            subscribe(0,205)
+        ], $dataIn->getSubscriptions());
+    }
 }
